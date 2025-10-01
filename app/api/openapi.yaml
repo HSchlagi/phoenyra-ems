@@ -1,0 +1,10 @@
+openapi: 3.1.0
+info:
+  title: EMS‑BESS API
+  version: 1.0.0
+paths:
+  /api/state:
+    get:
+      summary: Get live state
+      responses:
+        '200': { description: OK }

@@ -1,0 +1,73 @@
+# Phoenyra EMS - Configuration
+# ==============================
+
+ems:
+  mode: auto  # auto, manual, idle
+  timestep_s: 2  # Loop interval in seconds
+  optimization_interval_minutes: 15  # How often to re-optimize
+
+sites:
+  default_site_id: 1
+  db_path: "../data/ems.db"
+
+# Battery Energy Storage System (BESS) Parameters
+bess:
+  energy_capacity_kwh: 200.0
+  power_charge_max_kw: 100.0
+  power_discharge_max_kw: 100.0
+  soc_min_percent: 10.0
+  soc_max_percent: 90.0
+  efficiency_charge: 0.95
+  efficiency_discharge: 0.95
+
+# Price Configuration
+prices:
+  provider: awattar  # awattar, epex
+  region: AT  # AT, DE
+  demo_mode: true  # Set to false for real API calls
+
+# Forecast Configuration
+forecast:
+  demo_mode: true  # Set to false for real forecasting
+  load_forecast_method: simple  # simple, prophet, ml
+  pv_forecast_method: simple  # simple, weather_based, ml
+  
+  # Phase 2: Advanced Forecasting
+  use_prophet: false  # Enable Prophet-based forecasting
+  use_weather: false  # Enable weather-based PV forecasting
+  
+  # OpenWeatherMap (optional, for weather-based PV)
+  openweathermap_api_key: null
+  latitude: 48.2082  # Vienna
+  longitude: 16.3738
+  
+  # PV System
+  pv_peak_power_kw: 50.0
+  pv_efficiency: 0.85
+
+# Strategy Configuration
+strategies:
+  selection_mode: auto  # auto, manual
+  manual_strategy: arbitrage  # arbitrage, peak_shaving, self_consumption, load_balancing
+  switch_threshold: 0.15  # Min score difference to switch strategies
+  
+  # Strategy-specific parameters
+  arbitrage:
+    min_price_spread: 20.0  # EUR/MWh
+    min_profit_threshold: 5.0  # EUR
+  
+  peak_shaving:
+    peak_threshold_percentile: 75  # Percentile for peak detection
+    target_peak_reduction: 20  # Percent reduction target
+  
+  self_consumption:
+    feedin_tariff: 0.08  # EUR/kWh
+    grid_tariff: 0.30  # EUR/kWh
+  
+  load_balancing:
+    smoothing_window: 3  # Hours for moving average
+    target_load_factor: 0.8
+
+# Database Configuration
+database:
+  history_path: "data/ems_history.db"

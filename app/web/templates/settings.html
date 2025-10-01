@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Header -->
+<div style="margin-bottom: 24px;">
+    <h1>Einstellungen</h1>
+    <p class="subtitle">Konfiguration des EMS-Systems</p>
+</div>
+
+<!-- Settings Container -->
+<div class="grid grid-cols-2">
+    
+    <!-- Strategien -->
+    <div class="card">
+        <h2>
+            <svg class="text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path>
+            </svg>
+            Strategie-Steuerung
+        </h2>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px;">
+                Modus
+            </label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <button id="btn-auto" onclick="setStrategyMode('auto')" 
+                        style="padding: 12px 20px; background: #3b82f6; border: 2px solid #3b82f6; border-radius: 10px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>🤖</span>
+                    <span>Automatisch</span>
+                </button>
+                <button id="btn-manual" onclick="setStrategyMode('manual')" 
+                        style="padding: 12px 20px; background: rgba(55, 65, 81, 0.5); border: 2px solid rgba(75, 85, 99, 0.5); border-radius: 10px; color: #cbd5e1; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>✋</span>
+                    <span>Manuell</span>
+                </button>
+            </div>
+        </div>
+        
+        <div id="strategy-selector" style="display: none; margin-bottom: 20px;">
+            <label style="display: block; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px;">
+                Strategie wählen
+            </label>
+            <select id="strategy-select" onchange="selectStrategy()" 
+                    style="width: 100%; padding: 14px 16px; background: #0f172a; border: 2px solid #475569; border-radius: 10px; color: #fff; font-size: 15px; font-weight: 500; cursor: pointer;">
+                <option value="arbitrage">💰 Arbitrage</option>
+                <option value="peak_shaving">📊 Peak Shaving</option>
+                <option value="self_consumption">☀️ Self Consumption</option>
+                <option value="load_balancing">⚖️ Load Balancing</option>
+            </select>
+        </div>
+        
+        <div id="current-strategy" 
+             style="padding: 16px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #93c5fd; font-size: 14px;">
+            <strong>Aktuell:</strong> <span id="active-strategy-name">Lade...</span>
+        </div>
+    </div>
+    
+    <!-- BESS Parameter -->
+    <div class="card">
+        <h2>
+            <svg class="text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zm-2 4a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"></path>
+            </svg>
+            BESS Parameter
+        </h2>
+        
+        <div style="color: #94a3b8; font-size: 14px; background: rgba(100, 116, 139, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+            ℹ️ Aktuelle Konfiguration aus <code style="color: #60a5fa;">config/ems.yaml</code>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+            <div>
+                <p style="color: #9ca3af; margin-bottom: 4px;">Kapazität</p>
+                <p style="color: #fff; font-weight: 600;">200 kWh</p>
+            </div>
+            <div>
+                <p style="color: #9ca3af; margin-bottom: 4px;">Max Ladeleistung</p>
+                <p style="color: #fff; font-weight: 600;">100 kW</p>
+            </div>
+            <div>
+                <p style="color: #9ca3af; margin-bottom: 4px;">Max Entladeleistung</p>
+                <p style="color: #fff; font-weight: 600;">100 kW</p>
+            </div>
+            <div>
+                <p style="color: #9ca3af; margin-bottom: 4px;">SoC Min/Max</p>
+                <p style="color: #fff; font-weight: 600;">10% / 90%</p>
+            </div>
+            <div>
+                <p style="color: #9ca3af; margin-bottom: 4px;">Lade-Effizienz</p>
+                <p style="color: #fff; font-weight: 600;">95%</p>
+            </div>
+            <div>
+                <p style="color: #9ca3af; margin-bottom: 4px;">Entlade-Effizienz</p>
+                <p style="color: #fff; font-weight: 600;">95%</p>
+            </div>
+        </div>
+        
+        <p style="margin-top: 16px; font-size: 13px; color: #64748b; text-align: center;">
+            Zum Ändern: <code style="color: #60a5fa;">app/config/ems.yaml</code> bearbeiten
+        </p>
+    </div>
+</div>
+
+<!-- Advanced Settings -->
+<div class="card" style="margin-top: 24px;">
+    <h2>
+        <svg class="text-green-500" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+        </svg>
+        Erweiterte Optionen
+    </h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+        <div>
+            <p style="color: #cbd5e1; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Optimierungs-Intervall</p>
+            <p style="color: #94a3b8; font-size: 13px;">Alle 15 Minuten</p>
+        </div>
+        <div>
+            <p style="color: #cbd5e1; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Preis-Provider</p>
+            <p style="color: #94a3b8; font-size: 13px;">aWATTar (AT)</p>
+        </div>
+        <div>
+            <p style="color: #cbd5e1; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Forecast-Methode</p>
+            <p style="color: #94a3b8; font-size: 13px;">Simple (Demo)</p>
+        </div>
+        <div>
+            <p style="color: #cbd5e1; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Optimierer</p>
+            <p style="color: #94a3b8; font-size: 13px;">CVXPY (Linear Programming)</p>
+        </div>
+    </div>
+    
+    <div style="margin-top: 24px; padding: 16px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 8px;">
+        <p style="color: #fbbf24; font-size: 14px;">
+            💡 <strong>Tipp:</strong> Für Prophet ML oder Weather-API aktiviere diese in <code style="color: #fde047;">config/ems.yaml</code>
+        </p>
+    </div>
+</div>
+
+<style>
+.mode-btn {
+    flex: 1;
+    padding: 12px 24px;
+    background: rgba(55, 65, 81, 0.5);
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    border-radius: 8px;
+    color: #cbd5e1;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-btn:hover {
+    background: rgba(55, 65, 81, 0.8);
+    border-color: #3b82f6;
+}
+
+.mode-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+code {
+    background: rgba(15, 23, 42, 0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+</style>
+
+<script>
+let currentMode = 'auto';
+
+// Load current settings
+async function loadSettings() {
+    try {
+        const resp = await fetch('/api/strategies');
+        const data = await resp.json();
+        
+        currentMode = data.mode || 'auto';
+        document.getElementById('active-strategy-name').textContent = 
+            data.current || 'Keine Strategie aktiv';
+        
+        // Update buttons
+        if (currentMode === 'manual') {
+            document.getElementById('btn-manual').classList.add('active');
+            document.getElementById('btn-auto').classList.remove('active');
+            document.getElementById('strategy-selector').style.display = 'block';
+            
+            // Set select value
+            if (data.current) {
+                document.getElementById('strategy-select').value = data.current;
+            }
+        }
+    } catch (err) {
+        console.error('Error loading settings:', err);
+    }
+}
+
+// Set strategy mode
+async function setStrategyMode(mode) {
+    currentMode = mode;
+    
+    const btnAuto = document.getElementById('btn-auto');
+    const btnManual = document.getElementById('btn-manual');
+    
+    // Update UI
+    if (mode === 'auto') {
+        btnAuto.style.background = '#3b82f6';
+        btnAuto.style.borderColor = '#3b82f6';
+        btnAuto.style.color = 'white';
+        
+        btnManual.style.background = 'rgba(55, 65, 81, 0.5)';
+        btnManual.style.borderColor = 'rgba(75, 85, 99, 0.5)';
+        btnManual.style.color = '#cbd5e1';
+        
+        document.getElementById('strategy-selector').style.display = 'none';
+        
+        // Call API
+        try {
+            const resp = await fetch('/api/strategy/auto', { method: 'POST' });
+            const data = await resp.json();
+            
+            if (data.success) {
+                alert('✅ Automatischer Modus aktiviert!');
+                setTimeout(loadSettings, 1000);
+            }
+        } catch (err) {
+            alert('❌ Fehler: ' + err.message);
+        }
+        
+    } else {
+        btnManual.style.background = '#3b82f6';
+        btnManual.style.borderColor = '#3b82f6';
+        btnManual.style.color = 'white';
+        
+        btnAuto.style.background = 'rgba(55, 65, 81, 0.5)';
+        btnAuto.style.borderColor = 'rgba(75, 85, 99, 0.5)';
+        btnAuto.style.color = '#cbd5e1';
+        
+        document.getElementById('strategy-selector').style.display = 'block';
+    }
+}
+
+// Select strategy manually
+async function selectStrategy() {
+    const strategy = document.getElementById('strategy-select').value;
+    
+    try {
+        const resp = await fetch('/api/strategy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ strategy: strategy })
+        });
+        
+        const data = await resp.json();
+        
+        if (data.success) {
+            alert('✅ Strategie gewechselt zu: ' + strategy);
+            document.getElementById('active-strategy-name').textContent = strategy;
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        alert('❌ Fehler: ' + err.message);
+    }
+}
+
+// Load on page load
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+
+{% endblock %}
+

@@ -1,0 +1,5 @@
+flask
+pyyaml
+paho-mqtt
+pandas
+pulp

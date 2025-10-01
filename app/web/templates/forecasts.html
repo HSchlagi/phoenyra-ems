@@ -1,0 +1,415 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Header -->
+<div style="margin-bottom: 24px;">
+    <h1>Prognosen & Marktdaten</h1>
+    <p class="subtitle">Day-Ahead Preise, PV und Last-Prognosen</p>
+</div>
+
+<!-- Quick Stats -->
+<div class="grid grid-cols-4 mb-6">
+    <div class="card">
+        <div style="text-align: center;">
+            <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Min. Preis</p>
+            <p style="font-size: 28px; font-weight: 700; color: #22c55e;" id="price-min">--</p>
+            <p style="color: #6b7280; font-size: 12px; margin-top: 4px;">€/MWh</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div style="text-align: center;">
+            <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Max. Preis</p>
+            <p style="font-size: 28px; font-weight: 700; color: #ef4444;" id="price-max">--</p>
+            <p style="color: #6b7280; font-size: 12px; margin-top: 4px;">€/MWh</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div style="text-align: center;">
+            <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Preis-Spread</p>
+            <p style="font-size: 28px; font-weight: 700; color: #3b82f6;" id="price-spread">--</p>
+            <p style="color: #6b7280; font-size: 12px; margin-top: 4px;">€/MWh</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div style="text-align: center;">
+            <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Ø PV-Erzeugung</p>
+            <p style="font-size: 28px; font-weight: 700; color: #eab308;" id="pv-avg">--</p>
+            <p style="color: #6b7280; font-size: 12px; margin-top: 4px;">kW</p>
+        </div>
+    </div>
+</div>
+
+<!-- Price Chart -->
+<div class="card mb-6">
+        <h2>
+            <svg class="text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+            </svg>
+            aWATTar Day-Ahead Strompreise (24h)
+        </h2>
+        <div style="height: 300px; position: relative;">
+            <canvas id="priceDetailChart"></canvas>
+        </div>
+    </div>
+
+    <!-- PV & Load Forecasts -->
+    <div class="grid grid-cols-2">
+        <div class="card">
+            <h2>
+                <svg class="text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+                </svg>
+                PV-Erzeugungsprognose
+            </h2>
+            <div style="height: 250px; position: relative;">
+                <canvas id="pvChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>
+                <svg class="text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                </svg>
+                Lastprognose
+            </h2>
+            <div style="height: 250px; position: relative;">
+                <canvas id="loadChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+<!-- Data Table -->
+<div class="card" style="margin-top: 24px;">
+    <h2>
+        <svg class="text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+        </svg>
+        24h Prognosedaten
+    </h2>
+    <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+        <table style="width: 100%; font-size: 13px;">
+            <thead style="background: rgba(17, 24, 39, 0.8); position: sticky; top: 0;">
+                <tr>
+                    <th style="padding: 12px; text-align: left; color: #9ca3af; font-weight: 600;">Zeit</th>
+                    <th style="padding: 12px; text-align: right; color: #9ca3af; font-weight: 600;">Preis (€/MWh)</th>
+                    <th style="padding: 12px; text-align: right; color: #9ca3af; font-weight: 600;">PV (kW)</th>
+                    <th style="padding: 12px; text-align: right; color: #9ca3af; font-weight: 600;">Last (kW)</th>
+                    <th style="padding: 12px; text-align: right; color: #9ca3af; font-weight: 600;">BESS Plan (kW)</th>
+                </tr>
+            </thead>
+            <tbody id="forecast-table">
+                <tr>
+                    <td colspan="5" style="padding: 24px; text-align: center; color: #6b7280;">Lade Daten...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+let priceDetailChart, pvChart, loadChart;
+
+// Initialize when everything is loaded
+window.addEventListener('load', function() {
+    console.log('Window loaded, Chart.js available:', typeof Chart !== 'undefined');
+    
+    setTimeout(() => {
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js still not loaded!');
+            document.getElementById('priceDetailChart').parentElement.innerHTML = '<p style="color: #ef4444; text-align: center; padding: 40px;">Chart.js konnte nicht geladen werden. Bitte Seite neu laden.</p>';
+            return;
+        }
+        
+        console.log('Initializing forecasts page...');
+        initCharts();
+        loadForecastData();
+    }, 200);
+});
+
+async function loadForecastData() {
+    console.log('Loading forecast data...');
+    
+    let forecast = null;
+    let plan = null;
+    
+    try {
+        // Load forecasts
+        const forecastResp = await fetch('/api/forecast');
+        if (!forecastResp.ok) {
+            console.error('Forecast API error:', forecastResp.status);
+            return;
+        }
+        forecast = await forecastResp.json();
+        console.log('Forecast data:', forecast);
+    } catch (err) {
+        console.error('Error loading forecast:', err);
+        return;
+    }
+    
+    // Load plan (optional)
+    try {
+        const planResp = await fetch('/api/plan');
+        if (planResp.ok) {
+            plan = await planResp.json();
+            console.log('Plan data:', plan);
+        }
+    } catch (e) {
+        console.log('No plan available yet:', e);
+        plan = null;
+    }
+    
+    // Update UI
+    try {
+        updateCharts(forecast, plan);
+        updateStats(forecast);
+        updateTable(forecast, plan);
+    } catch (err) {
+        console.error('Error updating UI:', err);
+    }
+}
+
+function updateStats(forecast) {
+    if (!forecast.prices) return;
+    
+    const prices = forecast.prices.map(p => p[1]);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const spread = max - min;
+    
+    document.getElementById('price-min').textContent = min.toFixed(1);
+    document.getElementById('price-max').textContent = max.toFixed(1);
+    document.getElementById('price-spread').textContent = spread.toFixed(1);
+    
+    if (forecast.pv) {
+        const pvValues = forecast.pv.map(p => p[1]);
+        const avgPv = pvValues.reduce((a,b) => a+b, 0) / pvValues.length;
+        document.getElementById('pv-avg').textContent = avgPv.toFixed(1);
+    }
+}
+
+function updateTable(forecast, plan) {
+    const tbody = document.getElementById('forecast-table');
+    
+    if (!forecast.prices) return;
+    
+    const rows = [];
+    const maxRows = Math.min(24, forecast.prices.length);
+    
+    for (let i = 0; i < maxRows; i++) {
+        const time = new Date(forecast.prices[i][0]);
+        const price = forecast.prices[i][1];
+        const pv = forecast.pv && forecast.pv[i] ? forecast.pv[i][1] : 0;
+        const load = forecast.load && forecast.load[i] ? forecast.load[i][1] : 0;
+        const bess = plan && plan.schedule && plan.schedule[i] ? plan.schedule[i][1] : 0;
+        
+        // Color coding
+        const priceColor = price < 80 ? '#22c55e' : price > 130 ? '#ef4444' : '#3b82f6';
+        const bessColor = bess > 0 ? '#ef4444' : bess < 0 ? '#22c55e' : '#6b7280';
+        
+        rows.push(`
+            <tr style="border-bottom: 1px solid rgba(75, 85, 99, 0.3);">
+                <td style="padding: 12px; color: #cbd5e1;">${time.getHours()}:00</td>
+                <td style="padding: 12px; text-align: right; color: ${priceColor}; font-weight: 600;">${price.toFixed(1)}</td>
+                <td style="padding: 12px; text-align: right; color: #eab308;">${pv.toFixed(1)}</td>
+                <td style="padding: 12px; text-align: right; color: #f97316;">${load.toFixed(1)}</td>
+                <td style="padding: 12px; text-align: right; color: ${bessColor}; font-weight: 600;">${bess.toFixed(1)}</td>
+            </tr>
+        `);
+    }
+    
+    tbody.innerHTML = rows.join('');
+}
+
+function initCharts() {
+    console.log('Initializing charts...');
+    
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded!');
+        return;
+    }
+    
+    const textColor = 'rgb(229, 231, 235)';
+    const gridColor = 'rgba(75, 85, 99, 0.3)';
+    
+    // Price Detail Chart
+    const priceCtx = document.getElementById('priceDetailChart');
+    if (!priceCtx) {
+        console.error('priceDetailChart canvas not found!');
+        return;
+    }
+    
+    priceDetailChart = new Chart(priceCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Strompreis (€/MWh)',
+                data: [],
+                backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                borderColor: 'rgb(34, 197, 94)',
+                borderWidth: 2,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2.5,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y.toFixed(2) + ' €/MWh';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    min: 0,
+                    max: 200,
+                    title: { display: true, text: '€/MWh', color: textColor },
+                    ticks: { color: textColor },
+                    grid: { color: gridColor }
+                },
+                x: {
+                    ticks: { color: textColor },
+                    grid: { color: gridColor }
+                }
+            }
+        }
+    });
+    
+    // PV Chart
+    const pvCtx = document.getElementById('pvChart');
+    if (!pvCtx) {
+        console.error('pvChart canvas not found!');
+        return;
+    }
+    
+    pvChart = new Chart(pvCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'PV-Erzeugung (kW)',
+                data: [],
+                borderColor: 'rgb(234, 179, 8)',
+                backgroundColor: 'rgba(234, 179, 8, 0.3)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2.5,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    min: 0,
+                    max: 60,
+                    ticks: { color: textColor }, 
+                    grid: { color: gridColor } 
+                },
+                x: { ticks: { color: textColor }, grid: { color: gridColor } }
+            }
+        }
+    });
+    
+    // Load Chart
+    const loadCtx = document.getElementById('loadChart');
+    if (!loadCtx) {
+        console.error('loadChart canvas not found!');
+        return;
+    }
+    
+    loadChart = new Chart(loadCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Last (kW)',
+                data: [],
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2.5,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    min: 0,
+                    max: 40,
+                    ticks: { color: textColor }, 
+                    grid: { color: gridColor } 
+                },
+                x: { ticks: { color: textColor }, grid: { color: gridColor } }
+            }
+        }
+    });
+}
+
+function updateCharts(forecast, plan) {
+    console.log('Updating charts with forecast:', forecast);
+    
+    if (!forecast || !forecast.prices) {
+        console.error('No forecast data available');
+        return;
+    }
+    
+    const labels = forecast.prices.map(p => new Date(p[0]).getHours() + ':00');
+    const priceData = forecast.prices.map(p => p[1]);
+    const pvData = forecast.pv ? forecast.pv.map(p => p[1]) : [];
+    const loadData = forecast.load ? forecast.load.map(p => p[1]) : [];
+    
+    console.log('Price data points:', priceData.length);
+    console.log('PV data points:', pvData.length);
+    console.log('Load data points:', loadData.length);
+    
+    if (priceDetailChart) {
+        priceDetailChart.data.labels = labels;
+        priceDetailChart.data.datasets[0].data = priceData;
+        priceDetailChart.update();
+        console.log('Price chart updated');
+    }
+    
+    if (pvChart && pvData.length > 0) {
+        pvChart.data.labels = labels;
+        pvChart.data.datasets[0].data = pvData;
+        pvChart.update();
+        console.log('PV chart updated');
+    }
+    
+    if (loadChart && loadData.length > 0) {
+        loadChart.data.labels = labels;
+        loadChart.data.datasets[0].data = loadData;
+        loadChart.update();
+        console.log('Load chart updated');
+    }
+}
+</script>
+{% endblock %}
+

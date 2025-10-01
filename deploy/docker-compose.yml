@@ -1,0 +1,11 @@
+services:
+  web:
+    build:
+      context: ../app
+      dockerfile: ../deploy/Dockerfile
+    image: ems-bess-ui-final:latest
+    container_name: ems-bess-ui-final
+    env_file: .env
+    ports:
+      - '5050:8000'
+    restart: unless-stopped
