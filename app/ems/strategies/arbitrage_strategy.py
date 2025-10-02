@@ -8,7 +8,7 @@ from datetime import datetime
 import numpy as np
 
 from .base_strategy import BaseStrategy, StrategyResult
-from ..optimizers.lp_optimizer import LinearProgrammingOptimizer
+from ems.optimizers.lp_optimizer import LinearProgrammingOptimizer
 import logging
 
 logger = logging.getLogger(__name__)

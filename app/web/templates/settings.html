@@ -8,7 +8,7 @@
 </div>
 
 <!-- Settings Container -->
-<div class="grid grid-cols-2">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     
     <!-- Strategien -->
     <div class="card">
@@ -102,74 +102,192 @@
     </div>
 </div>
 
-<!-- Advanced Settings -->
-<div class="card" style="margin-top: 24px;">
-    <h2>
-        <svg class="text-green-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
-        </svg>
-        Erweiterte Optionen
-    </h2>
+<!-- MQTT/Modbus Configuration Row -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
     
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
-        <div>
-            <p style="color: #cbd5e1; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Optimierungs-Intervall</p>
-            <p style="color: #94a3b8; font-size: 13px;">Alle 15 Minuten</p>
+    <!-- MQTT Configuration -->
+    <div class="card">
+        <h2>
+            <svg class="text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+            </svg>
+            MQTT Konfiguration
+        </h2>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px;">
+                <input type="checkbox" id="mqtt-enabled" onchange="toggleMqttConfig()" style="width: 16px; height: 16px;">
+                MQTT aktivieren
+            </label>
         </div>
-        <div>
-            <p style="color: #cbd5e1; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Preis-Provider</p>
-            <p style="color: #94a3b8; font-size: 13px;">aWATTar (AT)</p>
-        </div>
-        <div>
-            <p style="color: #cbd5e1; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Forecast-Methode</p>
-            <p style="color: #94a3b8; font-size: 13px;">Simple (Demo)</p>
-        </div>
-        <div>
-            <p style="color: #cbd5e1; font-weight: 600; margin-bottom: 8px; font-size: 14px;">Optimierer</p>
-            <p style="color: #94a3b8; font-size: 13px;">CVXPY (Linear Programming)</p>
+        
+        <!-- MQTT Config - IMMER SICHTBAR für Test -->
+        <div id="mqtt-config" style="display: block; opacity: 1;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Broker Host</label>
+                    <input type="text" id="mqtt-host" value="localhost" 
+                           style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Port</label>
+                    <input type="number" id="mqtt-port" value="1883" 
+                           style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Username</label>
+                    <input type="text" id="mqtt-username" placeholder="Optional" 
+                           style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Password</label>
+                    <input type="password" id="mqtt-password" placeholder="Optional" 
+                           style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Client ID</label>
+                <input type="text" id="mqtt-client-id" value="phoenyra_ems" 
+                       style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            
+            <!-- MQTT Topics Configuration -->
+            <div style="margin-bottom: 20px; padding: 16px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px;">
+                <h3 style="color: #60a5fa; font-size: 16px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    📡 MQTT Topics
+                </h3>
+                
+                <!-- Publish Topics -->
+                <div style="margin-bottom: 16px;">
+                    <h4 style="color: #93c5fd; font-size: 14px; font-weight: 600; margin-bottom: 8px;">📤 Publish Topics (EMS → MQTT)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Status</label>
+                            <input type="text" id="mqtt-topic-publish-status" value="ems/status" 
+                                   style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Optimization</label>
+                            <input type="text" id="mqtt-topic-publish-optimization" value="ems/optimization" 
+                                   style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Alerts</label>
+                            <input type="text" id="mqtt-topic-publish-alerts" value="ems/alerts" 
+                                   style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">BESS Data</label>
+                            <input type="text" id="mqtt-topic-publish-bess" value="bess/data" 
+                                   style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Subscribe Topics -->
+                <div style="margin-bottom: 16px;">
+                    <h4 style="color: #93c5fd; font-size: 14px; font-weight: 600; margin-bottom: 8px;">📥 Subscribe Topics (MQTT → EMS)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Commands</label>
+                            <input type="text" id="mqtt-topic-subscribe-commands" value="ems/commands" 
+                                   style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Setpoints</label>
+                            <input type="text" id="mqtt-topic-subscribe-setpoints" value="ems/setpoints" 
+                                   style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Strategy Override</label>
+                            <input type="text" id="mqtt-topic-subscribe-strategy" value="ems/strategy_override" 
+                                   style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Config Updates</label>
+                            <input type="text" id="mqtt-topic-subscribe-config" value="ems/config" 
+                                   style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 12px; padding: 8px 12px; background: rgba(15, 23, 42, 0.6); border-radius: 6px;">
+                    <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                        💡 <strong>Hinweis:</strong> Topics werden automatisch mit dem Client ID als Präfix versehen: <code>phoenyra_ems/</code>
+                    </p>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+                <button onclick="testMqttConnection()" 
+                        style="flex: 1; padding: 10px 16px; background: #10b981; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                    🔗 Test Verbindung
+                </button>
+                <button onclick="saveMqttConfig()" 
+                        style="flex: 1; padding: 10px 16px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                    💾 Speichern
+                </button>
+            </div>
         </div>
     </div>
     
-    <div style="margin-top: 24px; padding: 16px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 8px;">
-        <p style="color: #fbbf24; font-size: 14px;">
-            💡 <strong>Tipp:</strong> Für Prophet ML oder Weather-API aktiviere diese in <code style="color: #fde047;">config/ems.yaml</code>
-        </p>
+    <!-- Modbus Configuration -->
+    <div class="card">
+        <h2>
+            <svg class="text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+            </svg>
+            Modbus Konfiguration
+        </h2>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px;">
+                <input type="checkbox" id="modbus-enabled" onchange="toggleModbusConfig()" style="width: 16px; height: 16px;">
+                Modbus aktivieren
+            </label>
+        </div>
+        
+        <div id="modbus-config" style="display: none; opacity: 0; transition: opacity 0.3s ease;">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Verbindungstyp</label>
+                <select id="modbus-type" onchange="toggleModbusType()" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    <option value="tcp">TCP/IP</option>
+                    <option value="rtu">RTU (Serial)</option>
+                </select>
+            </div>
+            
+            <div id="modbus-tcp-config" style="opacity: 1; transition: opacity 0.3s ease;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Host</label>
+                        <input type="text" id="modbus-host" value="localhost" 
+                               style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Port</label>
+                        <input type="number" id="modbus-port" value="502" 
+                               style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+                <button onclick="testModbusConnection()" 
+                        style="flex: 1; padding: 10px 16px; background: #10b981; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                    🔗 Test Verbindung
+                </button>
+                <button onclick="saveModbusConfig()" 
+                        style="flex: 1; padding: 10px 16px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                    💾 Speichern
+                </button>
+            </div>
+        </div>
     </div>
 </div>
-
-<style>
-.mode-btn {
-    flex: 1;
-    padding: 12px 24px;
-    background: rgba(55, 65, 81, 0.5);
-    border: 1px solid rgba(75, 85, 99, 0.5);
-    border-radius: 8px;
-    color: #cbd5e1;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.mode-btn:hover {
-    background: rgba(55, 65, 81, 0.8);
-    border-color: #3b82f6;
-}
-
-.mode-btn.active {
-    background: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
-}
-
-code {
-    background: rgba(15, 23, 42, 0.6);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-}
-</style>
 
 <script>
 let currentMode = 'auto';
@@ -269,9 +387,212 @@ async function selectStrategy() {
     }
 }
 
-// Load on page load
-document.addEventListener('DOMContentLoaded', loadSettings);
+// MQTT Configuration Functions
+function toggleMqttConfig() {
+    console.log('toggleMqttConfig called');
+    const enabled = document.getElementById('mqtt-enabled').checked;
+    const config = document.getElementById('mqtt-config');
+    
+    console.log('MQTT enabled:', enabled);
+    console.log('Config element found:', !!config);
+    
+    if (config) {
+        if (enabled) {
+            console.log('Showing MQTT config');
+            config.style.display = 'block';
+            config.style.opacity = '1';
+        } else {
+            console.log('Hiding MQTT config');
+            config.style.opacity = '0';
+            setTimeout(() => {
+                config.style.display = 'none';
+            }, 300);
+        }
+    } else {
+        console.error('MQTT config element not found!');
+    }
+}
+
+function saveMqttConfig() {
+    const config = {
+        enabled: document.getElementById('mqtt-enabled').checked,
+        broker_host: document.getElementById('mqtt-host').value,
+        broker_port: parseInt(document.getElementById('mqtt-port').value),
+        username: document.getElementById('mqtt-username').value || null,
+        password: document.getElementById('mqtt-password').value || null,
+        client_id: document.getElementById('mqtt-client-id').value,
+        topics: {
+            publish: {
+                status: document.getElementById('mqtt-topic-publish-status').value,
+                optimization: document.getElementById('mqtt-topic-publish-optimization').value,
+                alerts: document.getElementById('mqtt-topic-publish-alerts').value,
+                bess: document.getElementById('mqtt-topic-publish-bess').value
+            },
+            subscribe: {
+                commands: document.getElementById('mqtt-topic-subscribe-commands').value,
+                setpoints: document.getElementById('mqtt-topic-subscribe-setpoints').value,
+                strategy: document.getElementById('mqtt-topic-subscribe-strategy').value,
+                config: document.getElementById('mqtt-topic-subscribe-config').value
+            }
+        }
+    };
+    
+    fetch('/api/mqtt/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ MQTT Konfiguration gespeichert!');
+        } else {
+            alert('❌ Fehler beim Speichern: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Fehler beim Speichern der MQTT Konfiguration: ' + error.message);
+    });
+}
+
+function testMqttConnection() {
+    alert('🔗 MQTT Verbindungstest (Demo)');
+}
+
+// Modbus Configuration Functions
+function toggleModbusConfig() {
+    const enabled = document.getElementById('modbus-enabled').checked;
+    const config = document.getElementById('modbus-config');
+    
+    if (enabled) {
+        config.style.display = 'block';
+        config.offsetHeight;
+        config.style.opacity = '1';
+    } else {
+        config.style.opacity = '0';
+        setTimeout(() => {
+            config.style.display = 'none';
+        }, 300);
+    }
+}
+
+function toggleModbusType() {
+    const type = document.getElementById('modbus-type').value;
+    const tcpConfig = document.getElementById('modbus-tcp-config');
+    const rtuConfig = document.getElementById('modbus-rtu-config');
+    
+    if (type === 'tcp') {
+        if (rtuConfig) rtuConfig.style.display = 'none';
+        tcpConfig.style.display = 'block';
+        tcpConfig.offsetHeight;
+        tcpConfig.style.opacity = '1';
+    } else {
+        tcpConfig.style.display = 'none';
+        if (rtuConfig) {
+            rtuConfig.style.display = 'block';
+            rtuConfig.offsetHeight;
+            rtuConfig.style.opacity = '1';
+        }
+    }
+}
+
+function testModbusConnection() {
+    alert('🔗 Modbus Verbindungstest (Demo)');
+}
+
+function saveModbusConfig() {
+    const type = document.getElementById('modbus-type').value;
+    let config = {
+        enabled: document.getElementById('modbus-enabled').checked,
+        connection_type: type,
+        timeout: 3.0
+    };
+    
+    if (type === 'tcp') {
+        config.host = document.getElementById('modbus-host').value;
+        config.port = parseInt(document.getElementById('modbus-port').value);
+    }
+    
+    fetch('/api/modbus/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Modbus Konfiguration gespeichert!');
+        } else {
+            alert('❌ Fehler beim Speichern: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Fehler beim Speichern der Modbus Konfiguration: ' + error.message);
+    });
+}
+
+// Load current configuration on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Settings page loaded, initializing...');
+    
+    // Load MQTT config
+    fetch('/api/mqtt/config')
+    .then(response => response.json())
+    .then(data => {
+        console.log('MQTT config response:', data);
+        if (data.success && data.config) {
+            const config = data.config;
+            document.getElementById('mqtt-enabled').checked = config.enabled || false;
+            document.getElementById('mqtt-host').value = config.broker_host || 'localhost';
+            document.getElementById('mqtt-port').value = config.broker_port || 1883;
+            document.getElementById('mqtt-username').value = config.username || '';
+            document.getElementById('mqtt-password').value = config.password || '';
+            document.getElementById('mqtt-client-id').value = config.client_id || 'phoenyra_ems';
+            
+            // Load topic configurations
+            if (config.topics) {
+                // Publish topics
+                if (config.topics.publish) {
+                    document.getElementById('mqtt-topic-publish-status').value = config.topics.publish.status || 'ems/status';
+                    document.getElementById('mqtt-topic-publish-optimization').value = config.topics.publish.optimization || 'ems/optimization';
+                    document.getElementById('mqtt-topic-publish-alerts').value = config.topics.publish.alerts || 'ems/alerts';
+                    document.getElementById('mqtt-topic-publish-bess').value = config.topics.publish.bess || 'bess/data';
+                }
+                
+                // Subscribe topics
+                if (config.topics.subscribe) {
+                    document.getElementById('mqtt-topic-subscribe-commands').value = config.topics.subscribe.commands || 'ems/commands';
+                    document.getElementById('mqtt-topic-subscribe-setpoints').value = config.topics.subscribe.setpoints || 'ems/setpoints';
+                    document.getElementById('mqtt-topic-subscribe-strategy').value = config.topics.subscribe.strategy || 'ems/strategy_override';
+                    document.getElementById('mqtt-topic-subscribe-config').value = config.topics.subscribe.config || 'ems/config';
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error loading MQTT config:', error);
+    });
+    
+    // Load Modbus config
+    fetch('/api/modbus/config')
+    .then(response => response.json())
+    .then(data => {
+        console.log('Modbus config response:', data);
+        if (data.success && data.config) {
+            const config = data.config;
+            document.getElementById('modbus-enabled').checked = config.enabled || false;
+            document.getElementById('modbus-type').value = config.connection_type || 'tcp';
+            document.getElementById('modbus-host').value = config.host || 'localhost';
+            document.getElementById('modbus-port').value = config.port || 502;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading Modbus config:', error);
+    });
+    
+    // Load strategy settings
+    loadSettings();
+});
 </script>
 
 {% endblock %}
-

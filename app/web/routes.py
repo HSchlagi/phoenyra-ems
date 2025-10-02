@@ -7,10 +7,24 @@ from flask import Blueprint, render_template, jsonify, request, current_app, Res
 from auth.security import login_required, role_required
 import json
 import logging
+import yaml
+import os
 
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('web', __name__)
+
+def load_config():
+    """Load EMS configuration"""
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'ems.yaml')
+    with open(config_path, 'r', encoding='utf-8') as f:
+        return yaml.safe_load(f)
+
+def save_config(config):
+    """Save EMS configuration"""
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'ems.yaml')
+    with open(config_path, 'w', encoding='utf-8') as f:
+        yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
 
 
 # ============================================================================
@@ -78,6 +92,13 @@ def settings():
 def forecasts():
     """Forecasts & Market Data"""
     return render_template('forecasts.html')
+
+
+@bp.route('/mqtt-test')
+@login_required
+def mqtt_test():
+    """MQTT Topic Configuration Test Page"""
+    return render_template('mqtt_test.html')
 
 
 # ============================================================================
@@ -262,3 +283,158 @@ def openapi_spec():
     from pathlib import Path
     p = Path(__file__).resolve().parents[1] / 'api' / 'openapi.yaml'
     return send_from_directory(p.parent, p.name, mimetype='text/yaml')
+
+# ============================================================================
+# MQTT Configuration API
+# ============================================================================
+
+@bp.route('/api/mqtt/config', methods=['GET'])
+def api_mqtt_config_get():
+    """Get current MQTT configuration"""
+    try:
+        config = load_config()
+        mqtt_config = config.get('mqtt', {})
+        return jsonify({
+            'success': True,
+            'config': mqtt_config
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/mqtt/config', methods=['POST'])
+def api_mqtt_config_set():
+    """Update MQTT configuration"""
+    try:
+        config_data = request.get_json()
+        
+        # Load current config
+        config = load_config()
+        
+        # Update MQTT section
+        if 'mqtt' not in config:
+            config['mqtt'] = {}
+        
+        config['mqtt'].update(config_data)
+        
+        # Save config
+        save_config(config)
+        
+        return jsonify({'success': True, 'message': 'MQTT configuration updated'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/mqtt/test', methods=['POST'])
+def api_mqtt_test():
+    """Test MQTT connection"""
+    try:
+        config_data = request.get_json()
+        
+        # Import MQTT client
+        try:
+            import paho.mqtt.client as mqtt
+        except ImportError:
+            return jsonify({'success': False, 'error': 'paho-mqtt not installed'}), 500
+        
+        # Test connection
+        client = mqtt.Client(config_data.get('client_id', 'phoenyra_ems_test'))
+        
+        if config_data.get('username'):
+            client.username_pw_set(config_data['username'], config_data.get('password'))
+        
+        try:
+            client.connect(config_data['host'], config_data['port'], config_data.get('keepalive', 60))
+            client.disconnect()
+            return jsonify({'success': True, 'message': 'MQTT connection successful'})
+        except Exception as conn_error:
+            return jsonify({'success': False, 'error': f'Connection failed: {str(conn_error)}'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================================
+# Modbus Configuration API
+# ============================================================================
+
+@bp.route('/api/modbus/config', methods=['GET'])
+def api_modbus_config_get():
+    """Get current Modbus configuration"""
+    try:
+        config = load_config()
+        modbus_config = config.get('modbus', {})
+        return jsonify({
+            'success': True,
+            'config': modbus_config
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/modbus/config', methods=['POST'])
+def api_modbus_config_set():
+    """Update Modbus configuration"""
+    try:
+        config_data = request.get_json()
+        
+        # Load current config
+        config = load_config()
+        
+        # Update Modbus section
+        if 'modbus' not in config:
+            config['modbus'] = {}
+        
+        config['modbus'].update(config_data)
+        
+        # Save config
+        save_config(config)
+        
+        return jsonify({'success': True, 'message': 'Modbus configuration updated'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/modbus/test', methods=['POST'])
+def api_modbus_test():
+    """Test Modbus connection"""
+    try:
+        config_data = request.get_json()
+        
+        # Import Modbus client
+        try:
+            from pymodbus.client import ModbusTcpClient, ModbusSerialClient
+        except ImportError:
+            return jsonify({'success': False, 'error': 'pymodbus not installed'}), 500
+        
+        try:
+            if config_data['connection_type'] == 'tcp':
+                client = ModbusTcpClient(
+                    host=config_data['host'],
+                    port=config_data['port'],
+                    timeout=config_data.get('timeout', 3.0)
+                )
+            else:  # RTU
+                client = ModbusSerialClient(
+                    port=config_data['serial_port'],
+                    baudrate=config_data.get('baudrate', 115200),
+                    parity=config_data.get('parity', 'N'),
+                    timeout=config_data.get('timeout', 3.0)
+                )
+            
+            # Test connection by reading a register
+            result = client.read_holding_registers(
+                address=40001,  # Test register
+                count=1,
+                slave=config_data.get('slave_id', 1)
+            )
+            
+            client.close()
+            
+            if result.isError():
+                return jsonify({'success': False, 'error': f'Modbus read error: {result}'})
+            else:
+                return jsonify({'success': True, 'message': 'Modbus connection successful'})
+                
+        except Exception as conn_error:
+            return jsonify({'success': False, 'error': f'Connection failed: {str(conn_error)}'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

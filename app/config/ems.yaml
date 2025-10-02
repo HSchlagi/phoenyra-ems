@@ -1,73 +1,90 @@
-# Phoenyra EMS - Configuration
-# ==============================
-
-ems:
-  mode: auto  # auto, manual, idle
-  timestep_s: 2  # Loop interval in seconds
-  optimization_interval_minutes: 15  # How often to re-optimize
-
-sites:
-  default_site_id: 1
-  db_path: "../data/ems.db"
-
-# Battery Energy Storage System (BESS) Parameters
 bess:
+  efficiency_charge: 0.95
+  efficiency_discharge: 0.95
   energy_capacity_kwh: 200.0
   power_charge_max_kw: 100.0
   power_discharge_max_kw: 100.0
-  soc_min_percent: 10.0
   soc_max_percent: 90.0
-  efficiency_charge: 0.95
-  efficiency_discharge: 0.95
-
-# Price Configuration
-prices:
-  provider: awattar  # awattar, epex
-  region: AT  # AT, DE
-  demo_mode: true  # Set to false for real API calls
-
-# Forecast Configuration
-forecast:
-  demo_mode: true  # Set to false for real forecasting
-  load_forecast_method: simple  # simple, prophet, ml
-  pv_forecast_method: simple  # simple, weather_based, ml
-  
-  # Phase 2: Advanced Forecasting
-  use_prophet: false  # Enable Prophet-based forecasting
-  use_weather: false  # Enable weather-based PV forecasting
-  
-  # OpenWeatherMap (optional, for weather-based PV)
-  openweathermap_api_key: null
-  latitude: 48.2082  # Vienna
-  longitude: 16.3738
-  
-  # PV System
-  pv_peak_power_kw: 50.0
-  pv_efficiency: 0.85
-
-# Strategy Configuration
-strategies:
-  selection_mode: auto  # auto, manual
-  manual_strategy: arbitrage  # arbitrage, peak_shaving, self_consumption, load_balancing
-  switch_threshold: 0.15  # Min score difference to switch strategies
-  
-  # Strategy-specific parameters
-  arbitrage:
-    min_price_spread: 20.0  # EUR/MWh
-    min_profit_threshold: 5.0  # EUR
-  
-  peak_shaving:
-    peak_threshold_percentile: 75  # Percentile for peak detection
-    target_peak_reduction: 20  # Percent reduction target
-  
-  self_consumption:
-    feedin_tariff: 0.08  # EUR/kWh
-    grid_tariff: 0.30  # EUR/kWh
-  
-  load_balancing:
-    smoothing_window: 3  # Hours for moving average
-    target_load_factor: 0.8
-
-# Database Configuration
+  soc_min_percent: 10.0
 database:
-  history_path: "data/ems_history.db"
+  history_path: data/ems_history.db
+ems:
+  mode: auto
+  optimization_interval_minutes: 15
+  timestep_s: 2
+forecast:
+  demo_mode: true
+  latitude: 48.2082
+  load_forecast_method: simple
+  longitude: 16.3738
+  openweathermap_api_key: null
+  pv_efficiency: 0.85
+  pv_forecast_method: simple
+  pv_peak_power_kw: 50.0
+  use_prophet: false
+  use_weather: false
+modbus:
+  connection_type: tcp
+  enabled: false
+  host: localhost
+  port: 502
+  registers:
+    current_a: 40004
+    emergency_stop: 40013
+    enable_charge: 40011
+    enable_discharge: 40012
+    max_charge_power: 40020
+    max_discharge_power: 40021
+    power_kw: 40002
+    setpoint_power_kw: 40010
+    soc_max_percent: 40023
+    soc_min_percent: 40022
+    soc_percent: 40001
+    temperature_c: 40005
+    voltage_v: 40003
+  retries: 3
+  slave_id: 1
+  timeout: 3.0
+mqtt:
+  broker_host: localhost
+  broker_port: 1883
+  client_id: phoenyra_ems
+  enabled: true
+  keepalive: 60
+  password: null
+  qos: 1
+  topics:
+    publish:
+      alerts: ems/alerts
+      bess: bess/data
+      optimization: ems/optimization
+      status: ems/status
+    subscribe:
+      commands: ems/commands
+      config: ems/config
+      setpoints: ems/setpoints
+      strategy: ems/strategy_override
+  username: null
+prices:
+  demo_mode: true
+  provider: awattar
+  region: AT
+sites:
+  db_path: ../data/ems.db
+  default_site_id: 1
+strategies:
+  arbitrage:
+    min_price_spread: 20.0
+    min_profit_threshold: 5.0
+  load_balancing:
+    smoothing_window: 3
+    target_load_factor: 0.8
+  manual_strategy: arbitrage
+  peak_shaving:
+    peak_threshold_percentile: 75
+    target_peak_reduction: 20
+  selection_mode: auto
+  self_consumption:
+    feedin_tariff: 0.08
+    grid_tariff: 0.3
+  switch_threshold: 0.15
