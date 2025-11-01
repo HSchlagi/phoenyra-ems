@@ -77,6 +77,12 @@ class LinearProgrammingOptimizer:
         """Optimierung mit CVXPY (optimal)"""
         
         n_steps = len(prices)
+        
+        # Prüfe ob Preisdaten vorhanden
+        if n_steps == 0:
+            logger.warning("No price data available for CVXPY optimization")
+            return self._fallback_arbitrage(prices, current_soc, constr)
+        
         timestamps = [p[0] for p in prices]
         price_values = np.array([p[1] for p in prices])  # EUR/MWh
         
