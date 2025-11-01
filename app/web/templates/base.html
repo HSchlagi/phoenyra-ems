@@ -61,6 +61,10 @@
                     </svg>
                     Logout
                 </a>
+                <div class="datetime-display" id="datetime-display" style="font-family: 'Courier New', monospace; font-size: 14px; color: #94a3b8;">
+                    <div id="date"></div>
+                    <div id="time"></div>
+                </div>
             </div>
         </div>
     </nav>
@@ -70,6 +74,42 @@
         {% block content %}{% endblock %}
     </main>
     
+    <!-- Footer -->
+    <footer style="background: #1e293b; border-top: 1px solid #ffd700; padding: 20px 40px; margin-top: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; max-width: 100%; color: #94a3b8; font-size: 14px;">
+        <span>Phoenyra BESS EMS v2.0</span>
+        <span>© 2025 Phoenyra.com by Ing. Heinz Schlagintweit. Alle Rechte vorbehalten.</span>
+      </div>
+    </footer>
+    
     {% block scripts %}{% endblock %}
+    <script>
+        // Update Datum und Zeit
+        function updateDateTime() {
+            const now = new Date();
+            
+            // Datum formatieren: DD.MM.YYYY
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const dateStr = `${day}.${month}.${year}`;
+            
+            // Zeit formatieren: HH:MM:SS
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes}:${seconds}`;
+            
+            // Anzeige aktualisieren
+            const dateElem = document.getElementById('date');
+            const timeElem = document.getElementById('time');
+            if (dateElem) dateElem.textContent = dateStr;
+            if (timeElem) timeElem.textContent = timeStr;
+        }
+        
+        // Sofort aktualisieren und dann jede Sekunde
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    </script>
 </body>
 </html>

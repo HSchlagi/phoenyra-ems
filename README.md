@@ -29,15 +29,25 @@ EMS-Modul (Orchestrator)
 ## 📁 **Ordnerstruktur**
 
 ```
-EMS/
-├── README.md                    # Diese Datei
-├── EMS_MODUL_DOKUMENTATION.md   # Vollständige Dokumentation
-├── docs/                        # Detaillierte Dokumentation
-├── src/                         # Quellcode
-├── config/                      # Konfigurationsdateien
-├── tests/                       # Tests
-├── examples/                    # Beispiel-Implementierungen
-└── requirements.txt             # Python-Abhängigkeiten
+phoenyra-EMS/
+├── README.md                          # Diese Datei
+├── EMS_MODUL_DOKUMENTATION.md         # Vollständige EMS-Dokumentation
+├── DOKUMENTATION-EMS.md               # Monitoring-System Dokumentation
+├── PHASE2_FEATURES.md                 # Phase 2 Features
+├── app/                               # Hauptanwendung
+│   ├── config/                        # Konfigurationsdateien
+│   ├── data/                          # Datenbanken
+│   ├── ems/                           # EMS Core Module
+│   ├── services/                      # Services (Prices, Forecasts, DB, Communication)
+│   ├── web/                           # Web Interface
+│   │   ├── templates/                 # HTML Templates
+│   │   └── static/                    # CSS, JS, Assets
+│   └── requirements.txt               # Python Dependencies
+├── deploy/                            # Docker Deployment
+│   ├── docker-compose.yml             # Docker Compose Setup
+│   ├── Dockerfile                     # Docker Image
+│   └── mqtt/                          # MQTT Broker Config
+└── data/                              # Persistente Daten
 ```
 
 ## ✨ **Key Features**
@@ -60,6 +70,14 @@ EMS/
 - ✅ **aWATTar:** Day-Ahead Strompreise (AT/DE)
 - ✅ **SQLite DB:** Historische Datenspeicherung
 - ✅ **SSE:** Server-Sent Events für Live-Updates
+- ✅ **MQTT:** IoT-Integration (optional)
+- ✅ **Modbus:** Geräte-Integration (optional)
+
+### **🐳 Docker & Deployment**
+- ✅ **Docker Compose:** Containerisierte Deployment
+- ✅ **Gunicorn:** Production-Server
+- ✅ **MQTT Broker:** Eclipse Mosquitto Integration
+- ✅ **Volumes:** Persistente Daten und Konfiguration
 
 ## 🚀 **Schnellstart**
 
@@ -71,7 +89,8 @@ pip install -r requirements.txt
 
 ### **Starten:**
 ```bash
-python -m flask --app web.app run --debug
+cd app
+python -m flask --app web.app run --debug --port 5000
 ```
 
 ### **Dashboard öffnen:**
@@ -80,15 +99,40 @@ http://localhost:5000
 Login: admin / admin123
 ```
 
-📖 **Vollständige Installationsanleitung:** [app/INSTALLATION.md](app/INSTALLATION.md)
+## 🐳 **Docker Deployment**
+
+### **Mit Docker starten:**
+```bash
+docker-compose -f deploy/docker-compose.yml up -d --build
+```
+
+### **Dashboard öffnen (Docker):**
+```
+http://localhost:5050
+Login: admin / admin123
+```
+
+### **Container-Verwaltung:**
+```bash
+# Logs anzeigen
+docker-compose -f deploy/docker-compose.yml logs -f ems-web
+
+# Container stoppen
+docker-compose -f deploy/docker-compose.yml down
+
+# Neu starten
+docker-compose -f deploy/docker-compose.yml restart
+```
+
+📖 **Vollständige Installationsanleitung:** [app/INSTALLATION.md](app/INSTALLATION.md)  
+🐳 **Docker-Setup Details:** [deploy/README.md](deploy/README.md)
 
 ## 📚 **Dokumentation**
 
-- **[Vollständige Dokumentation](EMS_MODUL_DOKUMENTATION.md)** - Umfassende EMS-Dokumentation
-- **[Architektur](docs/EMS_ARCHITECTURE.md)** - Detaillierte Architektur-Beschreibung
-- **[Strategien](docs/EMS_STRATEGIES.md)** - EMS-Strategien Dokumentation
-- **[Integration](docs/EMS_INTEGRATION.md)** - BESS-Integration Guide
-- **[API-Referenz](docs/EMS_API_REFERENCE.md)** - API-Dokumentation
+- **[DOKUMENTATION-EMS.md](DOKUMENTATION-EMS.md)** - **Monitoring-System Dokumentation**
+- **[EMS_MODUL_DOKUMENTATION.md](EMS_MODUL_DOKUMENTATION.md)** - Vollständige EMS-Dokumentation
+- **[app/INSTALLATION.md](app/INSTALLATION.md)** - Installationsanleitung
+- **[deploy/README.md](deploy/README.md)** - Docker-Setup Details
 
 ## 🎯 **Implementierte Strategien**
 
@@ -274,6 +318,6 @@ Bei Fragen oder Problemen:
 
 ---
 
-*Erstellt am: $(date)*
-*Version: 1.0.0*
-*Autor: Cursor AI Assistant*
+**© 2025 Phoenyra.com by Ing. Heinz Schlagintweit. Alle Rechte vorbehalten.**
+
+*Phoenyra EMS - Intelligentes Energiemanagementsystem v2.0*

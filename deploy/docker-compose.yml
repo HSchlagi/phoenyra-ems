@@ -1,11 +1,54 @@
+version: '3.8'
+
 services:
-  web:
+  # Phoenyra BESS EMS Web Interface
+  ems-web:
     build:
       context: ../app
       dockerfile: ../deploy/Dockerfile
-    image: ems-bess-ui-final:latest
-    container_name: ems-bess-ui-final
-    env_file: .env
+    image: phoenyra-bess-ems:latest
+    container_name: phoenyra-bess-ems
     ports:
       - '5050:8000'
+    volumes:
+      # Persist database data
+      - ../data:/app/data
+      # Mount config for easy updates
+      - ../app/config:/app/config:ro
+      # Optional: mount logs
+      - ./logs:/app/logs
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      - TZ=Europe/Vienna
     restart: unless-stopped
+    networks:
+      - phoenyra-ems-network
+    depends_on:
+      - mqtt-broker
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/login')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MQTT Broker for EMS communication
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    container_name: phoenyra-ems-mqtt
+    ports:
+      - '1883:1883'
+      - '9001:9001'
+    volumes:
+      - ./mqtt/config:/mosquitto/config:ro
+      - ./mqtt/data:/mosquitto/data
+      - ./mqtt/log:/mosquitto/log
+    networks:
+      - phoenyra-ems-network
+    restart: unless-stopped
+
+networks:
+  phoenyra-ems-network:
+    driver: bridge
+    name: phoenyra-ems-network

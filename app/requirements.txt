@@ -27,3 +27,6 @@ pytz>=2023.3
 
 # Optional: MQTT for IoT
 paho-mqtt>=1.6.0
+
+# Production Server
+gunicorn>=21.2.0
