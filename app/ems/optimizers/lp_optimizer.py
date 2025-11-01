@@ -191,11 +191,27 @@ class LinearProgrammingOptimizer:
         timestamps = [p[0] for p in prices]
         price_values = [p[1] for p in prices]
         
+        # Prüfe ob Preisdaten vorhanden
+        if len(price_values) == 0:
+            logger.warning("No price data available for fallback optimization")
+            return {
+                'schedule': [],
+                'soc_schedule': [],
+                'expected_revenue': 0.0,
+                'expected_cost': 0.0,
+                'expected_profit': 0.0,
+                'energy_charged_kwh': 0.0,
+                'energy_discharged_kwh': 0.0,
+                'cycles': 0.0,
+                'optimization_status': 'no_data',
+                'solver': 'fallback'
+            }
+        
         # Finde Preis-Quantile
         prices_sorted = sorted(price_values)
         n = len(prices_sorted)
-        low_threshold = prices_sorted[n // 4]  # 25% Quantil
-        high_threshold = prices_sorted[3 * n // 4]  # 75% Quantil
+        low_threshold = prices_sorted[n // 4] if n >= 4 else prices_sorted[0]  # 25% Quantil
+        high_threshold = prices_sorted[3 * n // 4] if n >= 4 else prices_sorted[-1]  # 75% Quantil
         
         P_charge_max = constr['power_charge_max_kw']
         P_discharge_max = constr['power_discharge_max_kw']
