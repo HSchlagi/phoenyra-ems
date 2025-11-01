@@ -129,32 +129,12 @@ class LinearProgrammingOptimizer:
         constraints.append(E >= soc_min * E_capacity)
         constraints.append(E <= soc_max * E_capacity)
         
-        # Problem lösen
+        # Problem lösen (CVXPY wählt automatisch den besten Solver)
         problem = cp.Problem(objective, constraints)
-        
-        # Try different solvers in order of preference
-        solvers = ['CLARABEL', 'ECOS', 'OSQP', 'SCS']
-        result = None
-        solver_used = None
-        
-        for solver_name in solvers:
-            try:
-                solver = getattr(cp, solver_name)
-                result = problem.solve(solver=solver, verbose=False)
-                solver_used = solver_name
-                if problem.status in ["optimal", "optimal_inaccurate"]:
-                    break
-            except Exception as e:
-                logger.debug(f"Solver {solver_name} failed: {e}")
-                continue
-        
-        if result is None:
-            logger.warning(f"No solver available, using fallback")
-            return self._fallback_arbitrage([(timestamps[i], price_values[i]) for i in range(n_steps)], 
-                                           current_soc, constr)
+        result = problem.solve(verbose=False)
         
         if problem.status not in ["optimal", "optimal_inaccurate"]:
-            logger.warning(f"Optimization status: {problem.status}")
+            logger.warning(f"Optimization status: {problem.status}, using fallback")
             return self._fallback_arbitrage([(timestamps[i], price_values[i]) for i in range(n_steps)], 
                                            current_soc, constr)
         
