@@ -131,7 +131,27 @@ class LinearProgrammingOptimizer:
         
         # Problem lösen
         problem = cp.Problem(objective, constraints)
-        result = problem.solve(solver=cp.ECOS, verbose=False)
+        
+        # Try different solvers in order of preference
+        solvers = ['CLARABEL', 'ECOS', 'OSQP', 'SCS']
+        result = None
+        solver_used = None
+        
+        for solver_name in solvers:
+            try:
+                solver = getattr(cp, solver_name)
+                result = problem.solve(solver=solver, verbose=False)
+                solver_used = solver_name
+                if problem.status in ["optimal", "optimal_inaccurate"]:
+                    break
+            except Exception as e:
+                logger.debug(f"Solver {solver_name} failed: {e}")
+                continue
+        
+        if result is None:
+            logger.warning(f"No solver available, using fallback")
+            return self._fallback_arbitrage([(timestamps[i], price_values[i]) for i in range(n_steps)], 
+                                           current_soc, constr)
         
         if problem.status not in ["optimal", "optimal_inaccurate"]:
             logger.warning(f"Optimization status: {problem.status}")
