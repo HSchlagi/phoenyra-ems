@@ -62,6 +62,8 @@ phoenyra-EMS/
 ### **📊 Dashboard & Analytics**
 - ✅ **Live-Dashboard:** Echtzeit-Visualisierung mit Chart.js
 - ✅ **Analytics-Dashboard:** Historische Performance-Analyse
+- ✅ **Monitoring Page:** Live-Telemetrie (SoC, Spannung, Temperatur, Statusbits) mit MQTT-Quelle
+- ✅ **Settings UI:** MQTT- & Modbus-Konfiguration inkl. Register-Mapping im Browser
 - ✅ **KPI-Tracking:** Gewinn, Zyklen, SoC, Strategien
 - ✅ **Navigation:** Professionelles UI mit Tabs
 
@@ -71,7 +73,7 @@ phoenyra-EMS/
 - ✅ **SQLite DB:** Historische Datenspeicherung
 - ✅ **SSE:** Server-Sent Events für Live-Updates
 - ✅ **MQTT:** IoT-Integration (optional)
-- ✅ **Modbus:** Geräte-Integration (optional)
+- ✅ **Modbus:** Geräte-Integration (optional) inklusive Register-Konfiguration im UI
 
 ### **🐳 Docker & Deployment**
 - ✅ **Docker Compose:** Containerisierte Deployment
@@ -199,18 +201,31 @@ examples.run_peak_shaving_example()
 
 ## 🎨 **Dashboard Features**
 
-### Live-Monitoring
-- **KPI-Cards:** SoC, Power, Strategy, Expected Profit
-- **Echtzeit-Updates:** Server-Sent Events (SSE)
-- **Interaktive Charts:** Chart.js Visualisierungen
+### Main Dashboard (`/`)
+- **KPI-Cards:** SoC, Power, Active Strategy, Expected Profit
+- **Charts:** 24 h Optimization Plan (BESS/PV/Load) & Price + SoC Forecast
+- **System Status:** Grid Power, PV Generation, Load, Current Price
+- **Live-Updates:** Server-Sent Events (SSE) im 2‑Sekunden-Takt
 
-### Charts
-1. **24h Optimization Plan:** BESS Power, PV, Load
-2. **Price & SoC Forecast:** Strompreise und geplanter SoC-Verlauf
+### Monitoring (`/monitoring`) ⭐ NEU
+- **Live-Telemetrie:** SoC, Lade-/Entladeleistung, Netz-/Last-/PV-Leistung
+- **Zusatzwerte:** Batteriespannung, Temperatur, Statusbits, Datenquelle (MQTT/Simulation)
+- **Charts:** SoC-Verlauf & Leistungskanäle der letzten 60 min
+- **Rohdaten:** JSON-View der letzten MQTT-Payloads, automatisch entprellt
 
-### System Status
-- Grid Power, PV Generation, Load, Current Price
-- Alle Werte live aktualisiert
+### Analytics (`/analytics`)
+- **Performance Summary:** Gewinn, Vollzyklen, Ø SoC der letzten 30 Tage
+- **Charts:** Daily Profit & Strategie-Verteilung
+- **Optimization History:** Tabelle mit den letzten Runs inkl. Solver-Status
+
+### Forecasts (`/forecasts`)
+- **aWATTar Preise**, **PV-/Lastprognosen**, Prophet-basierte Forecasts
+- **Interaktive Charts** mit Y-Achsenbegrenzung und Tooltips
+
+### Settings (`/settings`)
+- **Strategiemodus:** Auto/Manuell inkl. Sofortumschaltung
+- **MQTT-Konfiguration:** Broker, Credentials, Topics mit Testfunktion
+- **Modbus-Konfiguration:** Verbindungstyp, Host/Port sowie Register-Editor für alle Holding-Register (SoC, Leistung, Enable, Not-Aus, …)
 
 ## 📡 **API-Endpunkte**
 
@@ -218,6 +233,7 @@ examples.run_peak_shaving_example()
 ```bash
 GET  /api/state              # Aktueller Anlagenzustand
 GET  /api/events             # SSE für Live-Updates
+GET  /api/monitoring/telemetry   # Telemetrie-Historie (Parameter: minutes, limit)
 ```
 
 ### **Optimization & Strategy**

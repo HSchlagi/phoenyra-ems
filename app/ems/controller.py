@@ -7,6 +7,9 @@ import time
 import threading
 import queue
 import logging
+import uuid
+from collections import deque
+import uuid
 from dataclasses import dataclass, asdict, field
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List, Tuple
@@ -17,6 +20,7 @@ from services.forecast.simple import pv_forecast, load_forecast
 from services.forecast.prophet_forecaster import ProphetForecaster
 from services.forecast.weather_forecaster import WeatherForecaster
 from services.database.history_db import HistoryDatabase
+from services.communication.mqtt_client import MQTTClient, MQTTConfig
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +37,13 @@ class PlantState:
     p_bess: float = 0.0  # kW
     price: float = 100.0  # EUR/MWh
     temp_c: float = 25.0  # °C
+    voltage_v: float = 400.0  # V
     
     # Status
     alarm: bool = False
     mode: str = 'auto'  # 'auto', 'manual', 'idle'
+    status_bits: Optional[str] = None
+    telemetry_source: str = 'simulation'
     
     # Sollwerte
     setpoint_kw: float = 0.0  # Aktueller Sollwert
@@ -78,10 +85,11 @@ class EmsCore:
         self.cfg = cfg
         self.state = PlantState()
         
-        # Threading
+        # Threading & synchronization
         self._stop = threading.Event()
         self._thr = None
         self._listeners = []
+        self._state_lock = threading.Lock()
         
         # Strategien und Optimierung
         self.strategy_manager = StrategyManager(cfg.get('strategies', {}))
@@ -127,8 +135,147 @@ class EmsCore:
         # Demo Mode
         self.demo_mode = cfg.get('prices', {}).get('demo_mode', True)
         
+        # Telemetrie-Puffer
+        self.telemetry_buffer = deque(maxlen=1800)  # ~1 Stunde bei 2s Intervall
+        self._telemetry_lock = threading.Lock()
+        self._last_sim_telemetry: Optional[datetime] = None
+        
+        # MQTT Integration
+        self.mqtt_client: Optional[MQTTClient] = None
+        self._mqtt_telemetry_topic: Optional[str] = None
+        self._live_telemetry = False
+        self._last_telemetry: Optional[datetime] = None
+        self._init_mqtt(cfg.get('mqtt', {}))
+        
         logger.info("EMS Core initialized with intelligent optimization")
     
+    def _init_mqtt(self, mqtt_cfg: Dict[str, Any]):
+        """Initialisiert MQTT-Client falls aktiviert"""
+        if not mqtt_cfg.get('enabled'):
+            logger.info("MQTT integration disabled in configuration")
+            return
+        
+        try:
+            base_client_id = mqtt_cfg.get('client_id', 'phoenyra_ems') or 'phoenyra_ems'
+            unique_client_id = f"{base_client_id}-{uuid.uuid4().hex[:6]}"
+            mqtt_config = MQTTConfig(
+                enabled=True,
+                broker_host=mqtt_cfg.get('broker_host', 'localhost'),
+                broker_port=mqtt_cfg.get('broker_port', 1883),
+                username=mqtt_cfg.get('username'),
+                password=mqtt_cfg.get('password'),
+                client_id=unique_client_id,
+                keepalive=mqtt_cfg.get('keepalive', 60),
+                qos=mqtt_cfg.get('qos', 1),
+                topics=mqtt_cfg.get('topics', {})
+            )
+            self.mqtt_client = MQTTClient(mqtt_config)
+            
+            telemetry_topic = mqtt_config.topics.get('subscribe', {}).get('telemetry')
+            if telemetry_topic:
+                self._mqtt_telemetry_topic = telemetry_topic
+                self.mqtt_client.subscribe_to_topic(telemetry_topic, self._handle_mqtt_telemetry)
+                logger.info(f"MQTT telemetry topic configured: {telemetry_topic} (client-id: {unique_client_id})")
+            else:
+                logger.warning("MQTT enabled but no telemetry topic configured; live data will not be ingested")
+        except Exception as e:
+            logger.error(f"Failed to initialize MQTT client: {e}")
+            self.mqtt_client = None
+
+    def _handle_mqtt_telemetry(self, topic: str, payload: Dict[str, Any]):
+        """Verarbeitet eingehende Hoymiles-Telemetrie"""
+        def as_float(value) -> Optional[float]:
+            if value is None:
+                return None
+            if isinstance(value, (int, float)):
+                return float(value)
+            try:
+                return float(str(value))
+            except (TypeError, ValueError):
+                return None
+        
+        try:
+            with self._state_lock:
+                self._live_telemetry = True
+                self._last_telemetry = datetime.now(timezone.utc)
+                self.state.telemetry_source = 'mqtt'
+                
+                soc = as_float(payload.get('soc') or payload.get('sys_soc'))
+                if soc is not None:
+                    self.state.soc = soc
+                
+                bat_power = as_float(payload.get('bat_p') or payload.get('sys_bat_p'))
+                if bat_power is not None:
+                    self.state.p_bess = bat_power / 1000.0  # W -> kW
+                
+                pv_power = as_float(payload.get('sys_pv_p'))
+                if pv_power is not None:
+                    self.state.p_pv = pv_power / 1000.0
+                
+                load_power = as_float(payload.get('sys_load_p'))
+                if load_power is not None:
+                    self.state.p_load = load_power / 1000.0
+                
+                grid_power = as_float(payload.get('sys_grid_p') or payload.get('grid_on_p'))
+                if grid_power is not None:
+                    self.state.p_grid = grid_power / 1000.0
+                
+                status = payload.get('bat_sts')
+                if isinstance(status, str) and status:
+                    self.state.mode = status
+                    self.state.status_bits = payload.get('status_bits') or payload.get('fault_code')
+                
+                voltage = as_float(payload.get('voltage') or payload.get('bat_v') or payload.get('sys_dc_v'))
+                if voltage is not None:
+                    self.state.voltage_v = voltage
+                
+                temperature = as_float(payload.get('temperature') or payload.get('bat_temp') or payload.get('cell_temp'))
+                if temperature is not None:
+                    self.state.temp_c = temperature
+                
+                self.state.timestamp = datetime.now(timezone.utc).isoformat()
+
+            self._record_telemetry('mqtt', payload)
+        except Exception as e:
+            logger.error(f"Failed to process MQTT telemetry message on {topic}: {e}", exc_info=True)
+    
+    def _record_telemetry(self, source: str, payload: Optional[Dict[str, Any]] = None):
+        """Speichert Telemetrie-Schnappschuss im Ringpuffer"""
+        with self._state_lock:
+            snapshot = {
+                'timestamp': self.state.timestamp,
+                'soc': self.state.soc,
+                'p_bess_kw': self.state.p_bess,
+                'p_grid_kw': self.state.p_grid,
+                'p_load_kw': self.state.p_load,
+                'p_pv_kw': self.state.p_pv,
+                'setpoint_kw': self.state.setpoint_kw,
+                'voltage_v': self.state.voltage_v,
+                'temperature_c': self.state.temp_c,
+                'mode': self.state.mode,
+                'status_bits': self.state.status_bits,
+                'telemetry_source': source
+            }
+        
+        if payload:
+            snapshot['raw'] = payload
+        
+        with self._telemetry_lock:
+            self.telemetry_buffer.append(snapshot)
+    
+    def get_recent_telemetry(self, minutes: int = 60, limit: int = 900) -> List[Dict[str, Any]]:
+        """Gibt Telemetrie der letzten Minuten zurück"""
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+        cutoff_iso = cutoff.isoformat()
+        
+        with self._telemetry_lock:
+            data = [entry for entry in self.telemetry_buffer if entry['timestamp'] >= cutoff_iso]
+        
+        if limit and len(data) > limit:
+            data = data[-limit:]
+        
+        return data
+
     def decide(self):
         """
         Haupt-Entscheidungslogik
@@ -144,31 +291,56 @@ class EmsCore:
         if self._needs_optimization(now):
             self._run_optimization()
         
-        # Hole Sollwert aus aktuellem Fahrplan
-        if self.current_plan and self.current_plan.schedule:
-            setpoint = self._get_setpoint_from_plan(now)
-            self.state.setpoint_kw = setpoint
-        else:
-            self.state.setpoint_kw = 0.0
+        record_simulation = False
         
-        # Simuliere BESS-Reaktion (vereinfacht)
-        self.state.p_bess = self.state.setpoint_kw
-        self.state.p_grid = self.state.p_load - self.state.p_pv - self.state.p_bess
+        with self._state_lock:
+            # Hole Sollwert aus aktuellem Fahrplan
+            if self.current_plan and self.current_plan.schedule:
+                setpoint = self._get_setpoint_from_plan(now)
+                self.state.setpoint_kw = setpoint
+            else:
+                self.state.setpoint_kw = 0.0
+            
+            # Prüfe ob Telemetrie noch aktuell ist (max 120s)
+            if self._live_telemetry and self._last_telemetry:
+                age = (now - self._last_telemetry).total_seconds()
+                if age > 120:
+                    self._live_telemetry = False
+                    self.state.telemetry_source = 'simulation'
+                    logger.warning("MQTT telemetry stale (>120s); reverting to simulated values")
+            
+            # Simuliere BESS-Reaktion nur wenn keine Live-Daten vorliegen
+            if not self._live_telemetry:
+                self.state.telemetry_source = 'simulation'
+                self.state.p_bess = self.state.setpoint_kw
+                self.state.p_grid = self.state.p_load - self.state.p_pv - self.state.p_bess
+                
+                if not self._last_sim_telemetry or (now - self._last_sim_telemetry).total_seconds() >= 10:
+                    record_simulation = True
+                    self._last_sim_telemetry = now
+            
+            # Update Timestamp
+            self.state.timestamp = now.isoformat()
+            
+            # Log State to History (alle 5 Minuten)
+            should_log = not hasattr(self, '_last_history_log') or (now - self._last_history_log).total_seconds() >= 300
+            if should_log:
+                try:
+                    self.history_db.log_state(self.to_dict())
+                    self._last_history_log = now
+                except Exception as e:
+                    logger.error(f"Failed to log state to history: {e}")
+            
+            soc = self.state.soc
+            setpoint_kw = self.state.setpoint_kw
+            strategy = self.state.active_strategy
         
-        # Update Timestamp
-        self.state.timestamp = now.isoformat()
+        logger.debug(f"State: SoC={soc:.1f}%, "
+                    f"Setpoint={setpoint_kw:.1f}kW, "
+                    f"Strategy={strategy}")
         
-        # Log State to History (alle 5 Minuten)
-        if not hasattr(self, '_last_history_log') or (now - self._last_history_log).total_seconds() >= 300:
-            try:
-                self.history_db.log_state(self.to_dict())
-                self._last_history_log = now
-            except Exception as e:
-                logger.error(f"Failed to log state to history: {e}")
-        
-        logger.debug(f"State: SoC={self.state.soc:.1f}%, "
-                    f"Setpoint={self.state.setpoint_kw:.1f}kW, "
-                    f"Strategy={self.state.active_strategy}")
+        if record_simulation:
+            self._record_telemetry('simulation')
     
     def _needs_optimization(self, now: datetime) -> bool:
         """Prüft ob neue Optimierung nötig ist"""
@@ -370,11 +542,19 @@ class EmsCore:
         self._thr = threading.Thread(target=self._loop, daemon=True)
         self._thr.start()
         
+        if self.mqtt_client:
+            if self.mqtt_client.connect():
+                logger.info("MQTT client connection initiated")
+            else:
+                logger.error("Failed to initiate MQTT connection")
+        
         logger.info("EMS Core started")
     
     def stop(self):
         """Stoppt EMS Loop"""
         self._stop.set()
+        if self.mqtt_client:
+            self.mqtt_client.disconnect()
         logger.info("EMS Core stopped")
     
     def to_dict(self) -> Dict[str, Any]:

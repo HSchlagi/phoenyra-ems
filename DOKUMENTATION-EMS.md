@@ -18,6 +18,7 @@ Phoenyra EMS (Energy Management System) ist ein intelligentes, strategiebasierte
 - ✅ **Analytics-Dashboard:** Historische Performance-Analyse
 - ✅ **Forecasts-Dashboard:** Prognosen und Marktdaten
 - ✅ **Settings-Dashboard:** System-Konfiguration
+- ✅ **Monitoring-Dashboard:** Live-Telemetrie für SoC, Spannung, Temperatur und Statusbits
 - ✅ **KPI-Tracking:** Gewinn, Zyklen, SoC, Strategien
 - ✅ **Navigation:** Professionelles UI mit Tabs
 
@@ -208,7 +209,16 @@ Echtzeit-Monitoring und KPI-Überwachung:
 - Server-Sent Events (SSE) für Echtzeit-Updates
 - Automatische Chart-Aktualisierung alle 2 Sekunden
 
-### **2. Analytics Dashboard (`/analytics`)**
+### **2. Monitoring Dashboard (`/monitoring`)** ⭐ NEU
+
+Live-Telemetrie aus MQTT und Simulation:
+
+- **KPI-Kacheln:** SoC, Lade-/Entladeleistung, Batteriespannung, Temperatur
+- **Charts:** SoC-Verlauf & Leistungskanäle (PV, Load, Grid, BESS) der letzten 60 Minuten
+- **Status & Rohdaten:** Modus, Statusbits, Zeitstempel, Datenquelle sowie JSON-View der aktuellen MQTT-Payload
+- **Telemetrie-Puffer:** automatische Entprellung, Quelle wird angezeigt (MQTT vs. Simulation)
+
+### **3. Analytics Dashboard (`/analytics`)**
 
 Performance-Analysen und historische Daten:
 
@@ -226,7 +236,7 @@ Performance-Analysen und historische Daten:
 - Letzte 15 Optimierungen
 - Zeit, Strategie, Gewinn, Status, Solver
 
-### **3. Forecasts Dashboard (`/forecasts`)**
+### **4. Forecasts Dashboard (`/forecasts`)**
 
 Prognosen und Marktdaten:
 
@@ -236,7 +246,7 @@ Prognosen und Marktdaten:
 - Prophet ML-Vorhersagen
 - Wetterbasierte PV-Prognosen
 
-### **4. Settings Dashboard (`/settings`)**
+### **5. Settings Dashboard (`/settings`)**
 
 System-Konfiguration:
 
@@ -244,7 +254,7 @@ System-Konfiguration:
 - Strategie-Einstellungen
 - Prognose-Optionen
 - BESS-Constraints
-- MQTT/Modbus-Konfiguration
+- MQTT/Modbus-Konfiguration inkl. Register-Editor (SoC, Leistung, Enable-Charge, Not-Aus, …)
 
 ---
 
@@ -255,6 +265,7 @@ System-Konfiguration:
 ```bash
 GET  /api/state              # Aktueller Anlagenzustand
 GET  /api/events             # SSE für Live-Updates
+GET  /api/monitoring/telemetry   # Telemetrie-Historie (Parameter: minutes, limit)
 ```
 
 ### **Optimization & Strategy**
@@ -357,6 +368,8 @@ modbus:
   host: localhost
   port: 502
 ```
+
+> 💡 **Hinweis:** Sämtliche Modbus-Holding-Register (SoC, Leistung, Enable-Bits, Not-Aus, …) können im Settings-Dashboard komfortabel gepflegt werden. Die Eingaben werden direkt in `config/ems.yaml` übernommen.
 
 ---
 

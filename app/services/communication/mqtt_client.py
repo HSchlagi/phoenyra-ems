@@ -72,7 +72,14 @@ class MQTTClient:
         try:
             import paho.mqtt.client as mqtt
             
-            self.client = mqtt.Client(self.config.client_id)
+            client_kwargs = {}
+            try:
+                client_kwargs['callback_api_version'] = mqtt.CallbackAPIVersion.VERSION1
+            except AttributeError:
+                # Older paho-mqtt versions (<2.0) do not expose callback_api_version
+                pass
+            
+            self.client = mqtt.Client(client_id=self.config.client_id, **client_kwargs)
             
             # Set authentication if provided
             if self.config.username:

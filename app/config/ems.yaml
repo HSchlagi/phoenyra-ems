@@ -46,12 +46,13 @@ modbus:
   slave_id: 1
   timeout: 3.0
 mqtt:
-  broker_host: localhost
-  broker_port: 1883
-  client_id: phoenyra_ems
   enabled: true
+  broker_host: 192.168.1.73
+  broker_port: 1883
+  username: mqtt
+  password: 1965_e
+  client_id: phoenyra_ems
   keepalive: 60
-  password: null
   qos: 1
   topics:
     publish:
@@ -60,13 +61,13 @@ mqtt:
       optimization: ems/optimization
       status: ems/status
     subscribe:
+      telemetry: homeassistant/sensor/MSA-280024210086/quick/state
       commands: ems/commands
       config: ems/config
       setpoints: ems/setpoints
       strategy: ems/strategy_override
-  username: null
 prices:
-  demo_mode: true
+  demo_mode: false
   provider: awattar
   region: AT
 sites:

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+    <h1>Monitoring & Telemetrie</h1>
+    <p class="subtitle">Live-Überwachung des BESS – SoC, Spannungen, Temperaturen und Statusbits</p>
+</div>
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-4 mb-6" id="monitoring-kpis">
+    <div class="card">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">State of Charge</p>
+        <p style="font-size: 30px; font-weight: 700; color: #38bdf8;" id="kpi-soc">-- %</p>
+        <p style="color: #6b7280; font-size: 12px;" id="kpi-source">Quelle: unbekannt</p>
+    </div>
+    <div class="card">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Batterieleistung</p>
+        <p style="font-size: 30px; font-weight: 700; color: #34d399;" id="kpi-power">-- kW</p>
+        <p style="color: #6b7280; font-size: 12px;">Charge (-) / Discharge (+)</p>
+    </div>
+    <div class="card">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Batteriespannung</p>
+        <p style="font-size: 30px; font-weight: 700; color: #f59e0b;" id="kpi-voltage">-- V</p>
+        <p style="color: #6b7280; font-size: 12px;">DC-Bus</p>
+    </div>
+    <div class="card">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Temperatur</p>
+        <p style="font-size: 30px; font-weight: 700; color: #f97316;" id="kpi-temperature">-- °C</p>
+        <p style="color: #6b7280; font-size: 12px;">Batterie / Zellverbund</p>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-2 mb-6">
+    <div class="card">
+        <h2>
+            <svg class="text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 3a1 1 0 000 2v10a2 2 0 002 2h10a2 2 0 002-2V5a1 1 0 100-2H3zm12 4H5v8h10V7z"></path>
+            </svg>
+            SoC Verlauf (letzte 60 min)
+        </h2>
+        <div style="height: 320px; position: relative;">
+            <canvas id="socChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <h2>
+            <svg class="text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm9 6H7a1 1 0 000 2h6a1 1 0 100-2zm0 4H7a1 1 0 000 2h6a1 1 0 100-2zm0-8H7a1 1 0 000 2h6a1 1 0 100-2z"></path>
+            </svg>
+            Leistungskanäle (kW)
+        </h2>
+        <div style="height: 320px; position: relative;">
+            <canvas id="powerChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Status Information -->
+<div class="card">
+    <h2>
+        <svg class="text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.492-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 10-2 0 1 1 0 002 0zm-1-2a1 1 0 001-1V7a1 1 0 10-2 0v3a1 1 0 001 1z" clip-rule="evenodd"></path>
+        </svg>
+        Status & Rohdaten
+    </h2>
+    <div class="grid grid-cols-2 gap-4">
+        <div style="padding: 12px; background: rgba(30, 41, 59, 0.6); border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.2);">
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 4px;">Modus</p>
+            <p style="color: #f1f5f9; font-weight: 600; font-size: 16px;" id="status-mode">--</p>
+        </div>
+        <div style="padding: 12px; background: rgba(30, 41, 59, 0.6); border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.2);">
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 4px;">Statusbits</p>
+            <p style="color: #f1f5f9; font-weight: 600; font-size: 16px;" id="status-bits">--</p>
+        </div>
+        <div style="padding: 12px; background: rgba(30, 41, 59, 0.6); border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.2);">
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 4px;">Letztes Update</p>
+            <p style="color: #f1f5f9; font-weight: 600; font-size: 16px;" id="status-updated">--</p>
+        </div>
+        <div style="padding: 12px; background: rgba(30, 41, 59, 0.6); border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.2);">
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 4px;">Quelle</p>
+            <p style="color: #f1f5f9; font-weight: 600; font-size: 16px;" id="status-source">--</p>
+        </div>
+    </div>
+    <div style="margin-top: 16px;">
+        <pre id="status-raw" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 12px; padding: 16px; font-size: 12px; color: #94a3b8; max-height: 240px; overflow-y: auto;">{}</pre>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/monitoring.js') }}"></script>
+{% endblock %}
+

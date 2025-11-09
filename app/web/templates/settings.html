@@ -275,6 +275,69 @@
                 </div>
             </div>
             
+            <div style="margin-bottom: 20px; padding: 16px; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: 10px;">
+                <h3 style="color: #fbbf24; font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    🧭 Modbus Register Mapping
+                </h3>
+                <p style="color: #cbd5f5; font-size: 12px; margin-bottom: 12px;">
+                    Trage hier die Holding-Register-Adressen deines Speichers ein. Das EMS nutzt diese Werte für Messwerte und Sollvorgaben.
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                    <div>
+                        <label for="modbus-register-current_a" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Strom (A)</label>
+                        <input type="number" id="modbus-register-current_a" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-voltage_v" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Spannung (V)</label>
+                        <input type="number" id="modbus-register-voltage_v" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-temperature_c" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Temperatur (°C)</label>
+                        <input type="number" id="modbus-register-temperature_c" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-soc_percent" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">SoC (%)</label>
+                        <input type="number" id="modbus-register-soc_percent" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-soc_min_percent" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">SoC Minimum (%)</label>
+                        <input type="number" id="modbus-register-soc_min_percent" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-soc_max_percent" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">SoC Maximum (%)</label>
+                        <input type="number" id="modbus-register-soc_max_percent" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-power_kw" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Aktuelle Leistung (kW)</label>
+                        <input type="number" id="modbus-register-power_kw" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-setpoint_power_kw" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Sollleistung (kW)</label>
+                        <input type="number" id="modbus-register-setpoint_power_kw" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-enable_charge" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Enable Charge</label>
+                        <input type="number" id="modbus-register-enable_charge" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-enable_discharge" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Enable Discharge</label>
+                        <input type="number" id="modbus-register-enable_discharge" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-max_charge_power" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Max Ladeleistung</label>
+                        <input type="number" id="modbus-register-max_charge_power" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-max_discharge_power" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Max Entladeleistung</label>
+                        <input type="number" id="modbus-register-max_discharge_power" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                    <div>
+                        <label for="modbus-register-emergency_stop" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Emergency Stop</label>
+                        <input type="number" id="modbus-register-emergency_stop" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
+                    </div>
+                </div>
+            </div>
+            
             <div style="display: flex; gap: 8px;">
                 <button onclick="testModbusConnection()" 
                         style="flex: 1; padding: 10px 16px; background: #10b981; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">
@@ -291,6 +354,21 @@
 
 <script>
 let currentMode = 'auto';
+const MODBUS_REGISTER_KEYS = [
+    'current_a',
+    'voltage_v',
+    'temperature_c',
+    'soc_percent',
+    'soc_min_percent',
+    'soc_max_percent',
+    'power_kw',
+    'setpoint_power_kw',
+    'enable_charge',
+    'enable_discharge',
+    'max_charge_power',
+    'max_discharge_power',
+    'emergency_stop'
+];
 
 // Load current settings
 async function loadSettings() {
@@ -513,6 +591,20 @@ function saveModbusConfig() {
         config.port = parseInt(document.getElementById('modbus-port').value);
     }
     
+    const registers = {};
+    MODBUS_REGISTER_KEYS.forEach(key => {
+        const el = document.getElementById(`modbus-register-${key}`);
+        if (el && el.value !== '') {
+            const val = parseInt(el.value, 10);
+            if (!Number.isNaN(val)) {
+                registers[key] = val;
+            }
+        }
+    });
+    if (Object.keys(registers).length > 0) {
+        config.registers = registers;
+    }
+    
     fetch('/api/modbus/config', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -584,6 +676,18 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modbus-type').value = config.connection_type || 'tcp';
             document.getElementById('modbus-host').value = config.host || 'localhost';
             document.getElementById('modbus-port').value = config.port || 502;
+            
+            if (config.registers) {
+                MODBUS_REGISTER_KEYS.forEach(key => {
+                    const el = document.getElementById(`modbus-register-${key}`);
+                    if (el && config.registers[key] !== undefined) {
+                        el.value = config.registers[key];
+                    }
+                });
+            }
+            
+            toggleModbusConfig();
+            toggleModbusType();
         }
     })
     .catch(error => {

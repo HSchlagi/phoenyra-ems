@@ -94,6 +94,13 @@ def forecasts():
     return render_template('forecasts.html')
 
 
+@bp.route('/monitoring')
+@login_required
+def monitoring():
+    """Live Monitoring & Telemetrie"""
+    return render_template('monitoring.html')
+
+
 @bp.route('/mqtt-test')
 @login_required
 def mqtt_test():
@@ -110,6 +117,22 @@ def mqtt_test():
 def api_state():
     """Gibt aktuellen Anlagenzustand zurück"""
     return jsonify(current_app.ems.to_dict())
+
+
+@bp.route('/api/monitoring/telemetry')
+@login_required
+def api_monitoring_telemetry():
+    """Gibt Telemetrieverlauf zurück"""
+    minutes = request.args.get('minutes', 60, type=int)
+    limit = request.args.get('limit', 900, type=int)
+    
+    telemetry = current_app.ems.get_recent_telemetry(minutes=minutes, limit=limit)
+    current_state = current_app.ems.to_dict()
+    
+    return jsonify({
+        'data': telemetry,
+        'current': current_state
+    })
 
 
 @bp.route('/api/events')
