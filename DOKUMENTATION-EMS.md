@@ -17,8 +17,8 @@ Phoenyra EMS (Energy Management System) ist ein intelligentes, strategiebasierte
 - ✅ **Live-Dashboard:** Echtzeit-Visualisierung mit Chart.js
 - ✅ **Analytics-Dashboard:** Historische Performance-Analyse
 - ✅ **Forecasts-Dashboard:** Prognosen und Marktdaten
-- ✅ **Settings-Dashboard:** System-Konfiguration
-- ✅ **Monitoring-Dashboard:** Live-Telemetrie für SoC, Spannung, Temperatur und Statusbits
+- ✅ **Settings-Dashboard:** System-Konfiguration mit MQTT-/Modbus-Assistent
+- ✅ **Monitoring-Dashboard:** Live-Telemetrie für SoC, SoH, Spannung, Temperatur, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarmbits
 - ✅ **KPI-Tracking:** Gewinn, Zyklen, SoC, Strategien
 - ✅ **Navigation:** Professionelles UI mit Tabs
 
@@ -28,7 +28,7 @@ Phoenyra EMS (Energy Management System) ist ein intelligentes, strategiebasierte
 - ✅ **SQLite DB:** Historische Datenspeicherung
 - ✅ **SSE:** Server-Sent Events für Live-Updates
 - ✅ **MQTT:** IoT-Integration (optional)
-- ✅ **Modbus:** Geräte-Integration (optional)
+- ✅ **Modbus:** Geräte-Integration via Profilbibliothek (z. B. Hithium ESS) inkl. Skalierung, Alarmbits, RTC-Synchronisation & UI-gestütztem Register-Editor
 
 ---
 
@@ -87,6 +87,7 @@ phoenyra-EMS/
 ├── app/
 │   ├── config/
 │   │   ├── ems.yaml              # EMS Konfiguration
+│   │   ├── modbus_profiles.py    # Modbus-Profilbibliothek
 │   │   └── users.yaml            # Benutzer-Datenbank
 │   ├── data/
 │   │   └── ems_history.db        # SQLite Historien-Datenbank
@@ -209,14 +210,15 @@ Echtzeit-Monitoring und KPI-Überwachung:
 - Server-Sent Events (SSE) für Echtzeit-Updates
 - Automatische Chart-Aktualisierung alle 2 Sekunden
 
-### **2. Monitoring Dashboard (`/monitoring`)** ⭐ NEU
+### **2. Monitoring Dashboard (`/monitoring`)**
 
-Live-Telemetrie aus MQTT und Simulation:
+Live-Telemetrie aus Modbus/MQTT oder Simulation inklusive BMS-Metadaten:
 
-- **KPI-Kacheln:** SoC, Lade-/Entladeleistung, Batteriespannung, Temperatur
+- **KPI-Kacheln:** SoC, SoH, Lade-/Entladeleistung, Batteriespannung, Temperatur, Isolationswiderstand
+- **Grenzwerte:** Anzeige der vom BMS gelieferten max. Lade-/Entladeleistung & Ströme für eine sichere Fahrweise
 - **Charts:** SoC-Verlauf & Leistungskanäle (PV, Load, Grid, BESS) der letzten 60 Minuten
-- **Status & Rohdaten:** Modus, Statusbits, Zeitstempel, Datenquelle sowie JSON-View der aktuellen MQTT-Payload
-- **Telemetrie-Puffer:** automatische Entprellung, Quelle wird angezeigt (MQTT vs. Simulation)
+- **Status & Rohdaten:** Systemstatus-Text + Code, aktive Alarmmeldungen, Datenquelle sowie JSON-View der aktuellen Telemetrie (entprellt)
+- **Telemetrie-Puffer:** autom. Entprellung & Zusammenführung unterschiedlicher Quellen (MQTT/Modbus/Simulation)
 
 ### **3. Analytics Dashboard (`/analytics`)**
 
@@ -248,13 +250,13 @@ Prognosen und Marktdaten:
 
 ### **5. Settings Dashboard (`/settings`)**
 
-System-Konfiguration:
+System-Konfiguration mit interaktivem Assistenten:
 
-- EMS-Parameter
-- Strategie-Einstellungen
-- Prognose-Optionen
-- BESS-Constraints
-- MQTT/Modbus-Konfiguration inkl. Register-Editor (SoC, Leistung, Enable-Charge, Not-Aus, …)
+- EMS-Parameter & Strategiemodus (Auto/Manuell)
+- Prognose-Optionen & BESS-Constraints
+- **MQTT-Konfiguration:** Broker, Credentials, Topics, Verbindungstest
+- **Modbus-Konfiguration:** Profil-Auswahl (z. B. Hithium ESS), Verbindungstyp (TCP/RTU), Host/Port/Slave-ID, Poll-Intervall, dynamischer Register-Editor inkl. Funktionscode, Skalierung & Alarmdefinitionen
+- **Register-Mapping:** Werte werden direkt aus Profilen übernommen und können überschrieben werden (inkl. Anzeige der Skalierung/Offsets)
 
 ---
 
@@ -296,6 +298,7 @@ POST /api/mqtt/test          # MQTT Verbindung testen
 GET  /api/modbus/config      # Modbus Konfiguration
 POST /api/modbus/config      # Modbus Konfiguration aktualisieren
 POST /api/modbus/test        # Modbus Verbindung testen
+GET  /api/modbus/profiles    # Verfügbare Modbus-Profile (optional: ?profile=<key> für Details)
 ```
 
 ---
@@ -364,12 +367,65 @@ mqtt:
 
 modbus:
   enabled: false
+  profile: hithium_ess_5016
   connection_type: tcp
   host: localhost
   port: 502
+  slave_id: 1
+  timeout: 3.0
+  retries: 3
+  poll_interval_s: 2.0
+  status_codes:
+    "0": Initialisierung
+    "1": Laden
+    "2": Entladen
+    "3": Bereit
+    "5": Ladesperre
+    "6": Entladesperre
+    "7": Lade- & Entladesperre
+    "8": Fehler
+  registers:
+    soc_percent:
+      address: 4
+      function: 4
+      scale: 1.0
+      unit: "%"
+      description: System State of Charge
+    voltage_v:
+      address: 2
+      function: 4
+      scale: 0.1
+      unit: V
+      description: System-Gesamtspannung
+    max_charge_power_kw:
+      address: 33
+      function: 4
+      scale: 0.1
+      unit: kW
+      description: Zulässige maximale Ladeleistung
+    status_code:
+      address: 43
+      function: 4
+      description: BMS Systemstatus
 ```
 
-> 💡 **Hinweis:** Sämtliche Modbus-Holding-Register (SoC, Leistung, Enable-Bits, Not-Aus, …) können im Settings-Dashboard komfortabel gepflegt werden. Die Eingaben werden direkt in `config/ems.yaml` übernommen.
+> 💡 **Hinweis:** Profile liefern vollständige Registerdefinitionen inkl. Funktionscode, Skalierung, Offsets & Alarmbits. Über das Settings-Dashboard können Werte überschrieben, Profile gewechselt oder eigene Register ergänzt werden. Alle Änderungen landen direkt in `config/ems.yaml`.
+
+### **Modbus-Profilbibliothek**
+
+- Basis-Datei: `app/config/modbus_profiles.py`
+- Enthält vordefinierte Profile (z. B. `hithium_ess_5016`) mit:
+  - Register-Definitionen (Adresse, Funktionscode, Datentyp, Skalierung, Offset, Einheit, Kategorie)
+  - Alarmdefinitionen (Discrete Inputs mit Bit-Mapping)
+  - Statuscode-Mapping (Code → Beschreibung)
+  - Standard-Verbindungsparameter (Port, Slave-ID, Poll-Intervall)
+- Erweiterung: Weitere Hersteller können durch Ergänzung eines neuen Eintrags im Dictionary `MODBUS_PROFILES` hinzugefügt werden.
+- UI-Integration: Profile stehen im Settings-Dashboard zur Auswahl; beim Wechsel wird das Register-Mapping automatisch aktualisiert.
+
+### **RTC-Synchronisation**
+
+- Beim ersten erfolgreichen Modbus-Verbindungsaufbau synchronisiert das EMS die Echtzeituhr des BMS automatisch mit UTC (Register 524–529).
+- Wird die Verbindung unterbrochen, erfolgt die Synchronisation erneut nach dem nächsten erfolgreichen Connect.
 
 ---
 

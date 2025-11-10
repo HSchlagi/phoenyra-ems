@@ -62,8 +62,8 @@ phoenyra-EMS/
 ### **📊 Dashboard & Analytics**
 - ✅ **Live-Dashboard:** Echtzeit-Visualisierung mit Chart.js
 - ✅ **Analytics-Dashboard:** Historische Performance-Analyse
-- ✅ **Monitoring Page:** Live-Telemetrie (SoC, Spannung, Temperatur, Statusbits) mit MQTT-Quelle
-- ✅ **Settings UI:** MQTT- & Modbus-Konfiguration inkl. Register-Mapping im Browser
+- ✅ **Monitoring Page:** Live-Telemetrie (SoC, SoH, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarme) inkl. Rohdaten-Viewer
+- ✅ **Settings UI:** MQTT- & Modbus-Konfiguration mit Profil-Auswahl, dynamischem Register-Mapping & Verbindungstest im Browser
 - ✅ **KPI-Tracking:** Gewinn, Zyklen, SoC, Strategien
 - ✅ **Navigation:** Professionelles UI mit Tabs
 
@@ -73,7 +73,7 @@ phoenyra-EMS/
 - ✅ **SQLite DB:** Historische Datenspeicherung
 - ✅ **SSE:** Server-Sent Events für Live-Updates
 - ✅ **MQTT:** IoT-Integration (optional)
-- ✅ **Modbus:** Geräte-Integration (optional) inklusive Register-Konfiguration im UI
+- ✅ **Modbus:** Geräte-Integration via Profilbibliothek (z. B. Hithium ESS) inkl. Skalierung, Alarmbits, Zeit-Sync & UI-gestütztem Register-Editor
 
 ### **🐳 Docker & Deployment**
 - ✅ **Docker Compose:** Containerisierte Deployment
@@ -208,10 +208,11 @@ examples.run_peak_shaving_example()
 - **Live-Updates:** Server-Sent Events (SSE) im 2‑Sekunden-Takt
 
 ### Monitoring (`/monitoring`) ⭐ NEU
-- **Live-Telemetrie:** SoC, Lade-/Entladeleistung, Netz-/Last-/PV-Leistung
-- **Zusatzwerte:** Batteriespannung, Temperatur, Statusbits, Datenquelle (MQTT/Simulation)
+- **Live-Telemetrie:** SoC, SoH, Lade-/Entladeleistung, Netz-/Last-/PV-Leistung
+- **Grenzwerte:** Anzeige der zulässigen Lade-/Entladeleistung & Ströme laut BMS, Isolationswiderstand
+- **Statusübersicht:** Systemstatus inkl. Statuscode, aktive Alarmmeldungen & Datenquelle (MQTT/Modbus/Simulation)
 - **Charts:** SoC-Verlauf & Leistungskanäle der letzten 60 min
-- **Rohdaten:** JSON-View der letzten MQTT-Payloads, automatisch entprellt
+- **Rohdaten:** JSON-View der letzten Telemetrie-Payloads, automatisch entprellt
 
 ### Analytics (`/analytics`)
 - **Performance Summary:** Gewinn, Vollzyklen, Ø SoC der letzten 30 Tage
@@ -225,7 +226,7 @@ examples.run_peak_shaving_example()
 ### Settings (`/settings`)
 - **Strategiemodus:** Auto/Manuell inkl. Sofortumschaltung
 - **MQTT-Konfiguration:** Broker, Credentials, Topics mit Testfunktion
-- **Modbus-Konfiguration:** Verbindungstyp, Host/Port sowie Register-Editor für alle Holding-Register (SoC, Leistung, Enable, Not-Aus, …)
+- **Modbus-Konfiguration:** Profil-Auswahl (z. B. Hithium), Verbindungstyp, Host/Port/Slave-ID, Poll-Intervall sowie dynamischer Register-Editor inkl. Funktionscode, Skalierung & Alarmdefinitionen
 
 ## 📡 **API-Endpunkte**
 
@@ -234,6 +235,7 @@ examples.run_peak_shaving_example()
 GET  /api/state              # Aktueller Anlagenzustand
 GET  /api/events             # SSE für Live-Updates
 GET  /api/monitoring/telemetry   # Telemetrie-Historie (Parameter: minutes, limit)
+GET  /api/modbus/profiles        # Verfügbare Modbus-Profile (optional: ?profile=key)
 ```
 
 ### **Optimization & Strategy**

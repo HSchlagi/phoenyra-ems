@@ -274,68 +274,41 @@
                     </div>
                 </div>
             </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Slave ID</label>
+                    <input type="number" id="modbus-slave-id" value="1"
+                           style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Retries</label>
+                    <input type="number" id="modbus-retries" value="3"
+                           style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Poll-Intervall (s)</label>
+                    <input type="number" id="modbus-poll-interval" value="2"
+                           style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Vordefiniertes Profil</label>
+                <select id="modbus-profile-select" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    <option value="">Benutzerdefiniert</option>
+                </select>
+                <div id="modbus-profile-meta" style="margin-top: 8px; font-size: 12px; color: #94a3b8;"></div>
+            </div>
             
             <div style="margin-bottom: 20px; padding: 16px; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: 10px;">
                 <h3 style="color: #fbbf24; font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                     🧭 Modbus Register Mapping
                 </h3>
                 <p style="color: #cbd5f5; font-size: 12px; margin-bottom: 12px;">
-                    Trage hier die Holding-Register-Adressen deines Speichers ein. Das EMS nutzt diese Werte für Messwerte und Sollvorgaben.
+                    Die Register werden je nach Herstellerprofil vorbelegt. Du kannst Adressen bei Bedarf anpassen – Skalierung, Einheit und Funktionscode stammen aus dem ausgewählten Profil.
                 </p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-                    <div>
-                        <label for="modbus-register-current_a" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Strom (A)</label>
-                        <input type="number" id="modbus-register-current_a" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-voltage_v" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Spannung (V)</label>
-                        <input type="number" id="modbus-register-voltage_v" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-temperature_c" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Temperatur (°C)</label>
-                        <input type="number" id="modbus-register-temperature_c" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-soc_percent" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">SoC (%)</label>
-                        <input type="number" id="modbus-register-soc_percent" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-soc_min_percent" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">SoC Minimum (%)</label>
-                        <input type="number" id="modbus-register-soc_min_percent" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-soc_max_percent" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">SoC Maximum (%)</label>
-                        <input type="number" id="modbus-register-soc_max_percent" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-power_kw" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Aktuelle Leistung (kW)</label>
-                        <input type="number" id="modbus-register-power_kw" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-setpoint_power_kw" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Sollleistung (kW)</label>
-                        <input type="number" id="modbus-register-setpoint_power_kw" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-enable_charge" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Enable Charge</label>
-                        <input type="number" id="modbus-register-enable_charge" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-enable_discharge" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Enable Discharge</label>
-                        <input type="number" id="modbus-register-enable_discharge" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-max_charge_power" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Max Ladeleistung</label>
-                        <input type="number" id="modbus-register-max_charge_power" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-max_discharge_power" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Max Entladeleistung</label>
-                        <input type="number" id="modbus-register-max_discharge_power" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                    <div>
-                        <label for="modbus-register-emergency_stop" style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Emergency Stop</label>
-                        <input type="number" id="modbus-register-emergency_stop" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff;">
-                    </div>
-                </div>
+                <div id="modbus-register-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
             </div>
             
             <div style="display: flex; gap: 8px;">
@@ -354,23 +327,234 @@
 
 <script>
 let currentMode = 'auto';
-const MODBUS_REGISTER_KEYS = [
-    'current_a',
-    'voltage_v',
-    'temperature_c',
+
+const MODBUS_FUNCTION_NAMES = {
+    2: 'Discrete Input (02)',
+    3: 'Holding Register (03)',
+    4: 'Input Register (04)'
+};
+
+const MODBUS_REGISTER_LABELS = {
+    soc_percent: { label: 'SoC (%)', description: 'System State of Charge', category: 'telemetry' },
+    soh_percent: { label: 'SOH (%)', description: 'System State of Health', category: 'telemetry' },
+    voltage_v: { label: 'Spannung (V)', description: 'System-Gesamtspannung', category: 'telemetry' },
+    current_a: { label: 'Strom (A)', description: 'Systemstrom (positiv = Laden)', category: 'telemetry' },
+    temperature_c: { label: 'Temperatur (degC)', description: 'Durchschnittliche Systemtemperatur', category: 'telemetry' },
+    max_discharge_power_kw: { label: 'Max. Entladeleistung (kW)', category: 'limit' },
+    max_charge_power_kw: { label: 'Max. Ladeleistung (kW)', category: 'limit' },
+    max_discharge_current_a: { label: 'Max. Entladestrom (A)', category: 'limit' },
+    max_charge_current_a: { label: 'Max. Ladestrom (A)', category: 'limit' },
+    insulation_resistance_kohm: { label: 'Isolationswiderstand (kOhm)', category: 'diagnostics' },
+    status_code: { label: 'Statuscode', description: 'BMS Systemstatus', category: 'status' },
+    pcs_comm_fault: { label: 'PCS <-> BMS Kommunikation', category: 'diagnostics' },
+    ems_comm_fault: { label: 'EMS <-> BMS Kommunikation', category: 'diagnostics' }
+};
+
+const MODBUS_REGISTER_ORDER = [
     'soc_percent',
-    'soc_min_percent',
-    'soc_max_percent',
-    'power_kw',
-    'setpoint_power_kw',
-    'enable_charge',
-    'enable_discharge',
-    'max_charge_power',
-    'max_discharge_power',
-    'emergency_stop'
+    'soh_percent',
+    'voltage_v',
+    'current_a',
+    'temperature_c',
+    'max_discharge_power_kw',
+    'max_charge_power_kw',
+    'max_discharge_current_a',
+    'max_charge_current_a',
+    'insulation_resistance_kohm',
+    'status_code',
+    'pcs_comm_fault',
+    'ems_comm_fault'
 ];
 
-// Load current settings
+let modbusSelectedProfile = '';
+let modbusRegisterDefinitions = {};
+let modbusProfileSummaries = {};
+let modbusProfileDetailsCache = {};
+let modbusStatusCodes = {};
+
+function mergeRegisterDefinitions(base, overrides) {
+    const result = {};
+    const keys = new Set([
+        ...Object.keys(base || {}),
+        ...Object.keys(overrides || {})
+    ]);
+    keys.forEach(key => {
+        const baseDef = base && base[key] ? { ...base[key] } : {};
+        const overrideDef = overrides && overrides[key] ? { ...overrides[key] } : {};
+        result[key] = { ...baseDef, ...overrideDef };
+    });
+    return result;
+}
+
+function formatModbusMeta(definition) {
+    const fn = MODBUS_FUNCTION_NAMES[definition.function] || `Function ${definition.function || 3}`;
+    const scale = definition.scale !== undefined ? definition.scale : 1;
+    const offset = definition.offset !== undefined ? definition.offset : 0;
+    const unit = definition.unit ? `Einheit ${definition.unit}` : 'Einheit -';
+    const category = definition.category ? `Kategorie ${definition.category}` : '';
+    return [fn, `Skalierung ${scale}`, `Offset ${offset}`, unit, category].filter(Boolean).join(' | ');
+}
+
+function buildModbusProfileOptions(summaries, selected) {
+    const select = document.getElementById('modbus-profile-select');
+    if (!select) return;
+    select.innerHTML = '';
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Benutzerdefiniert';
+    select.appendChild(defaultOption);
+    Object.entries(summaries || {}).forEach(([key, meta]) => {
+        const option = document.createElement('option');
+        option.value = key;
+        const labelParts = [];
+        if (meta.label) labelParts.push(meta.label);
+        if (meta.manufacturer) labelParts.push(meta.manufacturer);
+        option.textContent = labelParts.length ? labelParts.join(' | ') : key;
+        if (key === selected) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    });
+    if (!selected) {
+        select.value = '';
+    }
+}
+
+function updateModbusProfileMeta(profile) {
+    const metaEl = document.getElementById('modbus-profile-meta');
+    if (!metaEl) return;
+    if (!profile) {
+        metaEl.textContent = 'Kein Profil ausgewählt. Alle Register können manuell gepflegt werden.';
+        return;
+    }
+    const parts = [];
+    if (profile.label) parts.push(profile.label);
+    if (profile.manufacturer) parts.push(`Hersteller: ${profile.manufacturer}`);
+    if (profile.documentation) parts.push(`Dokumentation: ${profile.documentation}`);
+    metaEl.textContent = parts.join(' | ');
+}
+
+function buildModbusRegisterTable() {
+    const container = document.getElementById('modbus-register-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const definitions = modbusRegisterDefinitions || {};
+    if (Object.keys(definitions).length === 0) {
+        const empty = document.createElement('div');
+        empty.style.color = '#94a3b8';
+        empty.style.fontSize = '12px';
+        empty.textContent = 'Keine Register definiert. Wähle ein Profil oder trage manuell Werte ein.';
+        container.appendChild(empty);
+        return;
+    }
+
+    const keys = Array.from(new Set([...MODBUS_REGISTER_ORDER, ...Object.keys(definitions)]));
+    keys.forEach(key => {
+        const definition = definitions[key];
+        if (!definition) return;
+
+        const labels = MODBUS_REGISTER_LABELS[key] || { label: key };
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '16px';
+        row.style.alignItems = 'flex-start';
+        row.style.background = 'rgba(15, 23, 42, 0.45)';
+        row.style.border = '1px solid rgba(148, 163, 184, 0.35)';
+        row.style.borderRadius = '10px';
+        row.style.padding = '12px 14px';
+        row.style.backdropFilter = 'blur(4px)';
+
+        const metaCol = document.createElement('div');
+        metaCol.style.flex = '1';
+
+        const title = document.createElement('div');
+        title.style.fontWeight = '600';
+        title.style.color = '#e2e8f0';
+        title.textContent = labels.label || key;
+
+        const desc = document.createElement('div');
+        desc.style.fontSize = '12px';
+        desc.style.color = '#94a3b8';
+        desc.textContent = definition.description || labels.description || '';
+
+        const meta = document.createElement('div');
+        meta.style.fontSize = '11px';
+        meta.style.color = '#60a5fa';
+        meta.textContent = formatModbusMeta(definition);
+
+        metaCol.appendChild(title);
+        if (desc.textContent) {
+            metaCol.appendChild(desc);
+        }
+        metaCol.appendChild(meta);
+
+        const inputCol = document.createElement('div');
+        inputCol.style.width = '140px';
+
+        const label = document.createElement('label');
+        label.style.display = 'block';
+        label.style.fontSize = '11px';
+        label.style.fontWeight = '600';
+        label.style.color = '#94a3b8';
+        label.style.marginBottom = '4px';
+        label.textContent = 'Adresse';
+
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = `modbus-register-${key}`;
+        input.dataset.registerKey = key;
+        input.value = definition.address !== undefined ? definition.address : '';
+        input.style.width = '100%';
+        input.style.padding = '8px 10px';
+        input.style.background = 'rgba(55, 65, 81, 0.5)';
+        input.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+        input.style.borderRadius = '6px';
+        input.style.color = '#ffffff';
+
+        inputCol.appendChild(label);
+        inputCol.appendChild(input);
+
+        row.appendChild(metaCol);
+        row.appendChild(inputCol);
+
+        container.appendChild(row);
+    });
+}
+
+async function handleModbusProfileChange() {
+    const select = document.getElementById('modbus-profile-select');
+    if (!select) return;
+
+    modbusSelectedProfile = select.value;
+    let profileDetails = null;
+
+    if (modbusSelectedProfile) {
+        if (!modbusProfileDetailsCache[modbusSelectedProfile]) {
+            try {
+                const resp = await fetch(`/api/modbus/profiles?profile=${encodeURIComponent(modbusSelectedProfile)}`);
+                const data = await resp.json();
+                if (data.success) {
+                    modbusProfileDetailsCache[modbusSelectedProfile] = data.profile;
+                } else {
+                    alert('❌ Profil konnte nicht geladen werden: ' + (data.error || 'Unbekannter Fehler'));
+                    modbusProfileDetailsCache[modbusSelectedProfile] = null;
+                }
+            } catch (err) {
+                alert('❌ Profil konnte nicht geladen werden: ' + err.message);
+                modbusProfileDetailsCache[modbusSelectedProfile] = null;
+            }
+        }
+        profileDetails = modbusProfileDetailsCache[modbusSelectedProfile];
+    }
+
+    const baseRegisters = profileDetails && profileDetails.registers ? profileDetails.registers : {};
+    modbusStatusCodes = profileDetails && profileDetails.status_codes ? profileDetails.status_codes : {};
+    modbusRegisterDefinitions = mergeRegisterDefinitions(baseRegisters, {});
+    updateModbusProfileMeta(profileDetails);
+    buildModbusRegisterTable();
+}
+
 async function loadSettings() {
     try {
         const resp = await fetch('/api/strategies');
@@ -380,13 +564,11 @@ async function loadSettings() {
         document.getElementById('active-strategy-name').textContent = 
             data.current || 'Keine Strategie aktiv';
         
-        // Update buttons
         if (currentMode === 'manual') {
             document.getElementById('btn-manual').classList.add('active');
             document.getElementById('btn-auto').classList.remove('active');
             document.getElementById('strategy-selector').style.display = 'block';
             
-            // Set select value
             if (data.current) {
                 document.getElementById('strategy-select').value = data.current;
             }
@@ -396,14 +578,12 @@ async function loadSettings() {
     }
 }
 
-// Set strategy mode
 async function setStrategyMode(mode) {
     currentMode = mode;
     
     const btnAuto = document.getElementById('btn-auto');
     const btnManual = document.getElementById('btn-manual');
     
-    // Update UI
     if (mode === 'auto') {
         btnAuto.style.background = '#3b82f6';
         btnAuto.style.borderColor = '#3b82f6';
@@ -415,7 +595,6 @@ async function setStrategyMode(mode) {
         
         document.getElementById('strategy-selector').style.display = 'none';
         
-        // Call API
         try {
             const resp = await fetch('/api/strategy/auto', { method: 'POST' });
             const data = await resp.json();
@@ -441,7 +620,6 @@ async function setStrategyMode(mode) {
     }
 }
 
-// Select strategy manually
 async function selectStrategy() {
     const strategy = document.getElementById('strategy-select').value;
     
@@ -465,29 +643,20 @@ async function selectStrategy() {
     }
 }
 
-// MQTT Configuration Functions
 function toggleMqttConfig() {
-    console.log('toggleMqttConfig called');
     const enabled = document.getElementById('mqtt-enabled').checked;
     const config = document.getElementById('mqtt-config');
     
-    console.log('MQTT enabled:', enabled);
-    console.log('Config element found:', !!config);
-    
     if (config) {
         if (enabled) {
-            console.log('Showing MQTT config');
             config.style.display = 'block';
             config.style.opacity = '1';
         } else {
-            console.log('Hiding MQTT config');
             config.style.opacity = '0';
             setTimeout(() => {
                 config.style.display = 'none';
             }, 300);
         }
-    } else {
-        console.error('MQTT config element not found!');
     }
 }
 
@@ -495,7 +664,7 @@ function saveMqttConfig() {
     const config = {
         enabled: document.getElementById('mqtt-enabled').checked,
         broker_host: document.getElementById('mqtt-host').value,
-        broker_port: parseInt(document.getElementById('mqtt-port').value),
+        broker_port: parseInt(document.getElementById('mqtt-port').value, 10),
         username: document.getElementById('mqtt-username').value || null,
         password: document.getElementById('mqtt-password').value || null,
         client_id: document.getElementById('mqtt-client-id').value,
@@ -537,7 +706,6 @@ function testMqttConnection() {
     alert('🔗 MQTT Verbindungstest (Demo)');
 }
 
-// Modbus Configuration Functions
 function toggleModbusConfig() {
     const enabled = document.getElementById('modbus-enabled').checked;
     const config = document.getElementById('modbus-config');
@@ -574,64 +742,100 @@ function toggleModbusType() {
     }
 }
 
-function testModbusConnection() {
-    alert('🔗 Modbus Verbindungstest (Demo)');
-}
-
-function saveModbusConfig() {
+function collectModbusConfigInput() {
     const type = document.getElementById('modbus-type').value;
-    let config = {
+    const config = {
         enabled: document.getElementById('modbus-enabled').checked,
         connection_type: type,
+        slave_id: parseInt(document.getElementById('modbus-slave-id').value, 10) || 1,
+        retries: parseInt(document.getElementById('modbus-retries').value, 10) || 3,
+        poll_interval_s: parseFloat(document.getElementById('modbus-poll-interval').value) || 2.0,
+        profile: modbusSelectedProfile || null,
         timeout: 3.0
     };
+
+    const statusPrepared = {};
+    Object.keys(modbusStatusCodes || {}).forEach(key => {
+        statusPrepared[String(key)] = modbusStatusCodes[key];
+    });
+    if (Object.keys(statusPrepared).length > 0) {
+        config.status_codes = statusPrepared;
+    }
     
     if (type === 'tcp') {
-        config.host = document.getElementById('modbus-host').value;
-        config.port = parseInt(document.getElementById('modbus-port').value);
+        config.host = document.getElementById('modbus-host').value || 'localhost';
+        config.port = parseInt(document.getElementById('modbus-port').value, 10) || 502;
     }
     
     const registers = {};
-    MODBUS_REGISTER_KEYS.forEach(key => {
-        const el = document.getElementById(`modbus-register-${key}`);
-        if (el && el.value !== '') {
-            const val = parseInt(el.value, 10);
+    Object.keys(modbusRegisterDefinitions || {}).forEach(key => {
+        const input = document.getElementById(`modbus-register-${key}`);
+        const definition = { ...modbusRegisterDefinitions[key] };
+        if (input && input.value !== '') {
+            const val = parseInt(input.value, 10);
             if (!Number.isNaN(val)) {
-                registers[key] = val;
+                definition.address = val;
+            } else {
+                delete definition.address;
             }
         }
+        registers[key] = definition;
+        modbusRegisterDefinitions[key] = definition;
     });
-    if (Object.keys(registers).length > 0) {
-        config.registers = registers;
-    }
+    config.registers = registers;
     
-    fetch('/api/modbus/config', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(config)
-    })
-    .then(response => response.json())
-    .then(data => {
+    return config;
+}
+
+async function testModbusConnection() {
+    const config = collectModbusConfigInput();
+    try {
+        const resp = await fetch('/api/modbus/test', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        const data = await resp.json();
+        if (data.success) {
+            alert('✅ Modbus Verbindung erfolgreich getestet!');
+        } else {
+            alert('❌ Modbus Test fehlgeschlagen: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    } catch (error) {
+        alert('❌ Modbus Test fehlgeschlagen: ' + error.message);
+    }
+}
+
+async function saveModbusConfig() {
+    const config = collectModbusConfigInput();
+    try {
+        const resp = await fetch('/api/modbus/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        const data = await resp.json();
         if (data.success) {
             alert('✅ Modbus Konfiguration gespeichert!');
         } else {
-            alert('❌ Fehler beim Speichern: ' + data.error);
+            alert('❌ Fehler beim Speichern: ' + (data.error || 'Unbekannter Fehler'));
         }
-    })
-    .catch(error => {
+    } catch (error) {
         alert('❌ Fehler beim Speichern der Modbus Konfiguration: ' + error.message);
-    });
+    }
 }
 
-// Load current configuration on page load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Settings page loaded, initializing...');
-    
-    // Load MQTT config
+    const profileSelect = document.getElementById('modbus-profile-select');
+    if (profileSelect) {
+        profileSelect.addEventListener('change', () => {
+            handleModbusProfileChange();
+        });
+    }
+
     fetch('/api/mqtt/config')
     .then(response => response.json())
     .then(data => {
-        console.log('MQTT config response:', data);
         if (data.success && data.config) {
             const config = data.config;
             document.getElementById('mqtt-enabled').checked = config.enabled || false;
@@ -641,17 +845,13 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('mqtt-password').value = config.password || '';
             document.getElementById('mqtt-client-id').value = config.client_id || 'phoenyra_ems';
             
-            // Load topic configurations
             if (config.topics) {
-                // Publish topics
                 if (config.topics.publish) {
                     document.getElementById('mqtt-topic-publish-status').value = config.topics.publish.status || 'ems/status';
                     document.getElementById('mqtt-topic-publish-optimization').value = config.topics.publish.optimization || 'ems/optimization';
                     document.getElementById('mqtt-topic-publish-alerts').value = config.topics.publish.alerts || 'ems/alerts';
                     document.getElementById('mqtt-topic-publish-bess').value = config.topics.publish.bess || 'bess/data';
                 }
-                
-                // Subscribe topics
                 if (config.topics.subscribe) {
                     document.getElementById('mqtt-topic-subscribe-commands').value = config.topics.subscribe.commands || 'ems/commands';
                     document.getElementById('mqtt-topic-subscribe-setpoints').value = config.topics.subscribe.setpoints || 'ems/setpoints';
@@ -665,26 +865,33 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Error loading MQTT config:', error);
     });
     
-    // Load Modbus config
     fetch('/api/modbus/config')
     .then(response => response.json())
     .then(data => {
-        console.log('Modbus config response:', data);
         if (data.success && data.config) {
             const config = data.config;
+            modbusProfileSummaries = data.profiles || {};
+            const profileDetails = data.profile || null;
+            if (config.profile && profileDetails) {
+                modbusProfileDetailsCache[config.profile] = profileDetails;
+            }
+            modbusSelectedProfile = config.profile || '';
+            modbusStatusCodes = config.status_codes || {};
+            const baseRegisters = profileDetails && profileDetails.registers ? profileDetails.registers : {};
+            const userRegisters = config.registers || {};
+            modbusRegisterDefinitions = mergeRegisterDefinitions(baseRegisters, userRegisters);
+            
             document.getElementById('modbus-enabled').checked = config.enabled || false;
             document.getElementById('modbus-type').value = config.connection_type || 'tcp';
             document.getElementById('modbus-host').value = config.host || 'localhost';
             document.getElementById('modbus-port').value = config.port || 502;
+            document.getElementById('modbus-slave-id').value = config.slave_id != null ? config.slave_id : 1;
+            document.getElementById('modbus-retries').value = config.retries != null ? config.retries : 3;
+            document.getElementById('modbus-poll-interval').value = config.poll_interval_s != null ? config.poll_interval_s : 2;
             
-            if (config.registers) {
-                MODBUS_REGISTER_KEYS.forEach(key => {
-                    const el = document.getElementById(`modbus-register-${key}`);
-                    if (el && config.registers[key] !== undefined) {
-                        el.value = config.registers[key];
-                    }
-                });
-            }
+            buildModbusProfileOptions(modbusProfileSummaries, modbusSelectedProfile);
+            updateModbusProfileMeta(profileDetails);
+            buildModbusRegisterTable();
             
             toggleModbusConfig();
             toggleModbusType();
@@ -694,7 +901,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Error loading Modbus config:', error);
     });
     
-    // Load strategy settings
     loadSettings();
 });
 </script>

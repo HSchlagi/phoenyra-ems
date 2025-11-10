@@ -24,27 +24,178 @@ forecast:
   use_prophet: false
   use_weather: false
 modbus:
-  connection_type: tcp
   enabled: false
+  profile: hithium_ess_5016
+  connection_type: tcp
   host: localhost
   port: 502
-  registers:
-    current_a: 40004
-    emergency_stop: 40013
-    enable_charge: 40011
-    enable_discharge: 40012
-    max_charge_power: 40020
-    max_discharge_power: 40021
-    power_kw: 40002
-    setpoint_power_kw: 40010
-    soc_max_percent: 40023
-    soc_min_percent: 40022
-    soc_percent: 40001
-    temperature_c: 40005
-    voltage_v: 40003
-  retries: 3
   slave_id: 1
   timeout: 3.0
+  retries: 3
+  poll_interval_s: 2.0
+  status_codes:
+    '0': Initialisierung
+    '1': Laden
+    '2': Entladen
+    '3': Bereit
+    '5': Ladesperre
+    '6': Entladesperre
+    '7': Lade- & Entladesperre
+    '8': Fehler
+  registers:
+    soc_percent:
+      address: 4
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 1.0
+      offset: 0.0
+      unit: '%'
+      description: System State of Charge
+      category: telemetry
+      zero_based: false
+      signed: false
+    soh_percent:
+      address: 5
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 1.0
+      offset: 0.0
+      unit: '%'
+      description: System State of Health
+      category: telemetry
+      zero_based: false
+      signed: false
+    voltage_v:
+      address: 2
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 0.1
+      offset: 0.0
+      unit: V
+      description: System-Gesamtspannung
+      category: telemetry
+      zero_based: false
+      signed: false
+    current_a:
+      address: 3
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 0.1
+      offset: -3200.0
+      unit: A
+      description: Systemstrom (positiv = Laden, negativ = Entladen)
+      category: telemetry
+      zero_based: false
+      signed: false
+    temperature_c:
+      address: 42
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 1.0
+      offset: -40.0
+      unit: C
+      description: Durchschnittliche Systemtemperatur
+      category: telemetry
+      zero_based: false
+      signed: false
+    max_discharge_power_kw:
+      address: 32
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 0.1
+      offset: 0.0
+      unit: kW
+      description: Zulässige maximale Entladeleistung
+      category: limit
+      zero_based: false
+      signed: false
+    max_charge_power_kw:
+      address: 33
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 0.1
+      offset: 0.0
+      unit: kW
+      description: Zulässige maximale Ladeleistung
+      category: limit
+      zero_based: false
+      signed: false
+    max_discharge_current_a:
+      address: 34
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 0.1
+      offset: 0.0
+      unit: A
+      description: Zulässiger maximaler Entladestrom
+      category: limit
+      zero_based: false
+      signed: false
+    max_charge_current_a:
+      address: 35
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 0.1
+      offset: 0.0
+      unit: A
+      description: Zulässiger maximaler Ladestrom
+      category: limit
+      zero_based: false
+      signed: false
+    insulation_resistance_kohm:
+      address: 45
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 1.0
+      offset: 0.0
+      unit: kOhm
+      description: System-Isolationswiderstand
+      category: diagnostics
+      zero_based: false
+      signed: false
+    status_code:
+      address: 43
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 1.0
+      offset: 0.0
+      description: Systemstatus laut BMS
+      category: status
+      zero_based: false
+      signed: false
+    pcs_comm_fault:
+      address: 46
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 1.0
+      offset: 0.0
+      description: Kommunikation PCS <-> BMS (0=OK, 1=Fehler)
+      category: diagnostics
+      zero_based: false
+      signed: false
+    ems_comm_fault:
+      address: 47
+      function: 4
+      count: 1
+      data_type: uint16
+      scale: 1.0
+      offset: 0.0
+      description: Kommunikation EMS <-> BMS (0=OK, 1=Fehler)
+      category: diagnostics
+      zero_based: false
+      signed: false
 mqtt:
   enabled: true
   broker_host: 192.168.1.73

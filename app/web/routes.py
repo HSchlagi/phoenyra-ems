@@ -9,6 +9,10 @@ import json
 import logging
 import yaml
 import os
+from typing import Dict, Any
+
+from config import list_profiles, get_profile
+from services.communication import ModbusConfig, ModbusClient
 
 logger = logging.getLogger(__name__)
 
@@ -385,9 +389,14 @@ def api_modbus_config_get():
     try:
         config = load_config()
         modbus_config = config.get('modbus', {})
+        profile_key = modbus_config.get('profile')
+        profile_details = get_profile(profile_key) if profile_key else None
+        profiles = list_profiles()
         return jsonify({
             'success': True,
-            'config': modbus_config
+            'config': modbus_config,
+            'profile': profile_details,
+            'profiles': profiles
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -404,8 +413,20 @@ def api_modbus_config_set():
         # Update Modbus section
         if 'modbus' not in config:
             config['modbus'] = {}
-        
-        config['modbus'].update(config_data)
+
+        modbus_section: Dict[str, Any] = config['modbus']
+
+        registers = config_data.pop('registers', None)
+        if registers is not None:
+            modbus_section['registers'] = registers
+
+        status_codes = config_data.pop('status_codes', None)
+        if status_codes is not None:
+            # sicherstellen, dass Keys als Strings gespeichert werden
+            modbus_section['status_codes'] = {str(k): v for k, v in status_codes.items()}
+
+        # übrige Felder kopieren
+        modbus_section.update(config_data)
         
         # Save config
         save_config(config)
@@ -420,44 +441,56 @@ def api_modbus_test():
     """Test Modbus connection"""
     try:
         config_data = request.get_json()
-        
-        # Import Modbus client
-        try:
-            from pymodbus.client import ModbusTcpClient, ModbusSerialClient
-        except ImportError:
+
+        modbus_config = ModbusConfig(
+            enabled=True,
+            connection_type=config_data.get('connection_type', 'tcp'),
+            host=config_data.get('host', 'localhost'),
+            port=config_data.get('port', 502),
+            slave_id=config_data.get('slave_id', 1),
+            timeout=config_data.get('timeout', 3.0),
+            retries=config_data.get('retries', 3),
+            profile=config_data.get('profile'),
+            poll_interval_s=config_data.get('poll_interval_s', 2.0),
+            status_codes={str(k): v for k, v in config_data.get('status_codes', {}).items()},
+            registers=config_data.get('registers', {}),
+            serial_port=config_data.get('serial_port', '/dev/ttyUSB0'),
+            baudrate=config_data.get('baudrate', 115200),
+            parity=config_data.get('parity', 'N'),
+        )
+
+        client = ModbusClient(modbus_config)
+        if not client.config.enabled:
             return jsonify({'success': False, 'error': 'pymodbus not installed'}), 500
-        
+
+        if not client.connect():
+            return jsonify({'success': False, 'error': 'Modbus connection failed'})
+
         try:
-            if config_data['connection_type'] == 'tcp':
-                client = ModbusTcpClient(
-                    host=config_data['host'],
-                    port=config_data['port'],
-                    timeout=config_data.get('timeout', 3.0)
-                )
-            else:  # RTU
-                client = ModbusSerialClient(
-                    port=config_data['serial_port'],
-                    baudrate=config_data.get('baudrate', 115200),
-                    parity=config_data.get('parity', 'N'),
-                    timeout=config_data.get('timeout', 3.0)
-                )
-            
-            # Test connection by reading a register
-            result = client.read_holding_registers(
-                address=40001,  # Test register
-                count=1,
-                slave=config_data.get('slave_id', 1)
-            )
-            
-            client.close()
-            
-            if result.isError():
-                return jsonify({'success': False, 'error': f'Modbus read error: {result}'})
-            else:
+            if client.test_connection():
                 return jsonify({'success': True, 'message': 'Modbus connection successful'})
-                
-        except Exception as conn_error:
-            return jsonify({'success': False, 'error': f'Connection failed: {str(conn_error)}'})
-        
+            return jsonify({'success': False, 'error': 'No response from test register'})
+        finally:
+            client.disconnect()
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/api/modbus/profiles', methods=['GET'])
+def api_modbus_profiles():
+    """Liste oder Detail der verfügbaren Modbus-Profile"""
+    try:
+        profile_key = request.args.get('profile')
+        if profile_key:
+            profile = get_profile(profile_key)
+            if not profile:
+                return jsonify({'success': False, 'error': 'Profile not found'}), 404
+            return jsonify({'success': True, 'profile': profile})
+
+        return jsonify({
+            'success': True,
+            'profiles': list_profiles()
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

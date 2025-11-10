@@ -20,7 +20,8 @@ from services.forecast.simple import pv_forecast, load_forecast
 from services.forecast.prophet_forecaster import ProphetForecaster
 from services.forecast.weather_forecaster import WeatherForecaster
 from services.database.history_db import HistoryDatabase
-from services.communication.mqtt_client import MQTTClient, MQTTConfig
+from services.communication import MQTTClient, MQTTConfig, ModbusClient, ModbusConfig
+from config.modbus_profiles import get_profile
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +39,21 @@ class PlantState:
     price: float = 100.0  # EUR/MWh
     temp_c: float = 25.0  # °C
     voltage_v: float = 400.0  # V
+    soh: float = 100.0  # %
     
     # Status
     alarm: bool = False
     mode: str = 'auto'  # 'auto', 'manual', 'idle'
     status_bits: Optional[str] = None
+    status_code: Optional[int] = None
+    status_text: Optional[str] = None
+    active_alarms: List[str] = field(default_factory=list)
     telemetry_source: str = 'simulation'
+    max_charge_power_kw: float = 0.0
+    max_discharge_power_kw: float = 0.0
+    max_charge_current_a: float = 0.0
+    max_discharge_current_a: float = 0.0
+    insulation_kohm: float = 0.0
     
     # Sollwerte
     setpoint_kw: float = 0.0  # Aktueller Sollwert
@@ -140,12 +150,17 @@ class EmsCore:
         self._telemetry_lock = threading.Lock()
         self._last_sim_telemetry: Optional[datetime] = None
         
-        # MQTT Integration
+        # MQTT & Modbus Integration
         self.mqtt_client: Optional[MQTTClient] = None
         self._mqtt_telemetry_topic: Optional[str] = None
         self._live_telemetry = False
         self._last_telemetry: Optional[datetime] = None
+        self.modbus_client: Optional[ModbusClient] = None
+        self._modbus_thread: Optional[threading.Thread] = None
+        self._modbus_alarm_definitions: Dict[str, Dict[str, Any]] = {}
+        self._modbus_time_synced = False
         self._init_mqtt(cfg.get('mqtt', {}))
+        self._init_modbus(cfg.get('modbus', {}))
         
         logger.info("EMS Core initialized with intelligent optimization")
     
@@ -182,6 +197,178 @@ class EmsCore:
             logger.error(f"Failed to initialize MQTT client: {e}")
             self.mqtt_client = None
 
+    def _init_modbus(self, modbus_cfg: Dict[str, Any]):
+        """Initialisiert Modbus-Client und Polling-Thread"""
+        if not modbus_cfg or not modbus_cfg.get('enabled'):
+            logger.info("Modbus integration disabled in configuration")
+            return
+
+        profile_key = modbus_cfg.get('profile')
+        profile = get_profile(profile_key) if profile_key else None
+
+        # Register-Mapping zusammenführen (Profil + Konfiguration)
+        registers: Dict[str, Dict[str, Any]] = {}
+        if profile:
+            profile_registers = profile.get('registers', {})
+            for name, definition in profile_registers.items():
+                registers[name] = dict(definition)
+
+        user_registers = modbus_cfg.get('registers', {})
+        for name, definition in user_registers.items():
+            base = registers.get(name, {})
+            merged = dict(base)
+            if isinstance(definition, dict):
+                merged.update(definition)
+            else:
+                merged['address'] = definition
+            registers[name] = merged
+
+        status_codes = {}
+        if profile:
+            status_codes.update({str(k): v for k, v in profile.get('status_codes', {}).items()})
+        config_status_codes = modbus_cfg.get('status_codes', {})
+        status_codes.update({str(k): v for k, v in config_status_codes.items()})
+
+        self._modbus_alarm_definitions = {}
+        if profile:
+            self._modbus_alarm_definitions.update(profile.get('alarms', {}))
+        if 'alarms' in modbus_cfg:
+            self._modbus_alarm_definitions.update(modbus_cfg.get('alarms', {}))
+
+        try:
+            modbus_config = ModbusConfig(
+                enabled=True,
+                connection_type=modbus_cfg.get('connection_type', 'tcp'),
+                host=modbus_cfg.get('host', 'localhost'),
+                port=modbus_cfg.get('port', 502),
+                slave_id=modbus_cfg.get('slave_id', 1),
+                timeout=modbus_cfg.get('timeout', 3.0),
+                retries=modbus_cfg.get('retries', 3),
+                profile=profile_key,
+                poll_interval_s=modbus_cfg.get('poll_interval_s', 2.0),
+                status_codes=status_codes,
+                registers=registers,
+                serial_port=modbus_cfg.get('serial_port', '/dev/ttyUSB0'),
+                baudrate=modbus_cfg.get('baudrate', 115200),
+                parity=modbus_cfg.get('parity', 'N'),
+            )
+
+            self.modbus_client = ModbusClient(modbus_config)
+
+            if not self.modbus_client.config.enabled:
+                logger.warning("Modbus client could not be initialized; check configuration")
+                self.modbus_client = None
+                return
+
+            self._modbus_thread = threading.Thread(
+                target=self._modbus_poll_loop,
+                name="ems-modbus",
+                daemon=True,
+            )
+            self._modbus_thread.start()
+            logger.info("Modbus polling thread started (profile=%s)", profile_key or 'custom')
+        except Exception as exc:
+            logger.error("Failed to initialize Modbus integration: %s", exc, exc_info=True)
+            self.modbus_client = None
+            self._modbus_alarm_definitions = {}
+
+    def _modbus_poll_loop(self):
+        """Pollt periodisch Modbus-Telemetrie"""
+        if not self.modbus_client:
+            return
+
+        interval = max(float(self.modbus_client.config.poll_interval_s or 2.0), 0.5)
+
+        while not self._stop.is_set():
+            try:
+                if not self.modbus_client.connected:
+                    if not self.modbus_client.connect():
+                        self._modbus_time_synced = False
+                        time.sleep(min(interval, 5.0))
+                        continue
+                if not self._modbus_time_synced:
+                    if self.modbus_client.sync_time(datetime.now(timezone.utc)):
+                        self._modbus_time_synced = True
+
+                status = self.modbus_client.read_bess_status()
+                alarms = {}
+                if self._modbus_alarm_definitions:
+                    alarms = self.modbus_client.read_alarm_flags(self._modbus_alarm_definitions)
+
+                if status:
+                    self._handle_modbus_status(status, alarms)
+            except Exception as exc:
+                logger.error("Modbus polling error: %s", exc, exc_info=True)
+                if self.modbus_client:
+                    self.modbus_client.disconnect()
+                self._modbus_time_synced = False
+                time.sleep(min(interval, 5.0))
+            else:
+                time.sleep(interval)
+
+    def _handle_modbus_status(self, status: Dict[str, Any], alarms: Optional[Dict[str, bool]] = None):
+        """Überführt Modbus-Telemetrie in den internen Anlagenzustand"""
+        if not status:
+            return
+
+        active_alarm_labels: List[str] = []
+        if alarms:
+            active_alarm_labels = [name for name, active in alarms.items() if active]
+
+        with self._state_lock:
+            self._live_telemetry = True
+            self._last_telemetry = datetime.now(timezone.utc)
+            self.state.telemetry_source = 'modbus'
+
+            mapping = {
+                'soc_percent': ('soc', float),
+                'power_kw': ('p_bess', float),
+                'voltage_v': ('voltage_v', float),
+                'temperature_c': ('temp_c', float),
+                'soh_percent': ('soh', float),
+                'max_charge_power_kw': ('max_charge_power_kw', float),
+                'max_discharge_power_kw': ('max_discharge_power_kw', float),
+                'max_charge_current_a': ('max_charge_current_a', float),
+                'max_discharge_current_a': ('max_discharge_current_a', float),
+                'insulation_resistance_kohm': ('insulation_kohm', float),
+            }
+
+            for key, (attr, cast) in mapping.items():
+                if key in status and status[key] is not None:
+                    try:
+                        setattr(self.state, attr, cast(status[key]))
+                    except (TypeError, ValueError):
+                        logger.debug("Unable to cast Modbus value %s=%s", key, status[key])
+
+            if 'status_code' in status and status['status_code'] is not None:
+                try:
+                    self.state.status_code = int(round(status['status_code']))
+                except (TypeError, ValueError):
+                    self.state.status_code = None
+
+            if 'status_text' in status and status['status_text']:
+                self.state.status_text = str(status['status_text'])
+                self.state.mode = self.state.status_text
+            elif self.state.status_code is not None:
+                self.state.status_text = f"Status {self.state.status_code}"
+                self.state.mode = self.state.status_text
+
+            if active_alarm_labels:
+                self.state.active_alarms = active_alarm_labels
+                self.state.status_bits = ', '.join(active_alarm_labels)
+                self.state.alarm = True
+            else:
+                self.state.active_alarms = []
+                self.state.status_bits = None
+                self.state.alarm = False
+
+            self.state.timestamp = datetime.now(timezone.utc).isoformat()
+
+        payload = dict(status)
+        if alarms is not None:
+            payload['alarms'] = alarms
+
+        self._record_telemetry('modbus', payload)
     def _handle_mqtt_telemetry(self, topic: str, payload: Dict[str, Any]):
         """Verarbeitet eingehende Hoymiles-Telemetrie"""
         def as_float(value) -> Optional[float]:
@@ -245,6 +432,7 @@ class EmsCore:
             snapshot = {
                 'timestamp': self.state.timestamp,
                 'soc': self.state.soc,
+                'soh': self.state.soh,
                 'p_bess_kw': self.state.p_bess,
                 'p_grid_kw': self.state.p_grid,
                 'p_load_kw': self.state.p_load,
@@ -253,7 +441,15 @@ class EmsCore:
                 'voltage_v': self.state.voltage_v,
                 'temperature_c': self.state.temp_c,
                 'mode': self.state.mode,
+                'status_code': self.state.status_code,
+                'status_text': self.state.status_text,
                 'status_bits': self.state.status_bits,
+                'max_charge_power_kw': self.state.max_charge_power_kw,
+                'max_discharge_power_kw': self.state.max_discharge_power_kw,
+                'max_charge_current_a': self.state.max_charge_current_a,
+                'max_discharge_current_a': self.state.max_discharge_current_a,
+                'insulation_kohm': self.state.insulation_kohm,
+                'alarms': list(self.state.active_alarms),
                 'telemetry_source': source
             }
         
@@ -307,7 +503,7 @@ class EmsCore:
                 if age > 120:
                     self._live_telemetry = False
                     self.state.telemetry_source = 'simulation'
-                    logger.warning("MQTT telemetry stale (>120s); reverting to simulated values")
+                    logger.warning("Live telemetry stale (>120s); reverting to simulated values")
             
             # Simuliere BESS-Reaktion nur wenn keine Live-Daten vorliegen
             if not self._live_telemetry:
@@ -555,6 +751,11 @@ class EmsCore:
         self._stop.set()
         if self.mqtt_client:
             self.mqtt_client.disconnect()
+        if self.modbus_client:
+            self.modbus_client.disconnect()
+        if self._modbus_thread and self._modbus_thread.is_alive():
+            self._modbus_thread.join(timeout=5)
+            self._modbus_thread = None
         logger.info("EMS Core stopped")
     
     def to_dict(self) -> Dict[str, Any]:

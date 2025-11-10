@@ -12,7 +12,9 @@ const lastStatusSnapshot = {
     mode: null,
     bits: null,
     updated: null,
-    source: null
+    source: null,
+    text: null,
+    code: null
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -230,7 +232,14 @@ function handleStateUpdate(state) {
         temperature_c: state.temp_c,
         mode: state.mode,
         status_bits: state.status_bits,
-        telemetry_source: state.telemetry_source
+        telemetry_source: state.telemetry_source,
+        soh: state.soh,
+        max_charge_power_kw: state.max_charge_power_kw,
+        max_discharge_power_kw: state.max_discharge_power_kw,
+        status_code: state.status_code,
+        status_text: state.status_text,
+        active_alarms: Array.isArray(state.active_alarms) ? state.active_alarms : [],
+        insulation_kohm: state.insulation_kohm
     };
     
     mergeTelemetryPoint(point);
@@ -302,12 +311,20 @@ function updateKpis(state) {
     const voltageElem = document.getElementById('kpi-voltage');
     const tempElem = document.getElementById('kpi-temperature');
     const sourceElem = document.getElementById('kpi-source');
+    const sohElem = document.getElementById('kpi-soh');
+    const maxChargeElem = document.getElementById('kpi-max-charge');
+    const maxDischargeElem = document.getElementById('kpi-max-discharge');
+    const insulationElem = document.getElementById('kpi-insulation');
     
     if (socElem) socElem.textContent = `${formatNumber(state.soc)} %`;
     if (powerElem) powerElem.textContent = `${formatSigned(state.p_bess)} kW`;
     if (voltageElem) voltageElem.textContent = state.voltage_v != null ? `${formatNumber(state.voltage_v)} V` : '-- V';
     if (tempElem) tempElem.textContent = state.temp_c != null ? `${formatNumber(state.temp_c)} °C` : '-- °C';
     if (sourceElem) sourceElem.textContent = `Quelle: ${state.telemetry_source === 'mqtt' ? 'MQTT Telemetrie' : 'Simulation'}`;
+    if (sohElem) sohElem.textContent = state.soh != null ? `${formatNumber(state.soh)} %` : '-- %';
+    if (maxChargeElem) maxChargeElem.textContent = state.max_charge_power_kw != null ? `${formatNumber(state.max_charge_power_kw)} kW` : '-- kW';
+    if (maxDischargeElem) maxDischargeElem.textContent = state.max_discharge_power_kw != null ? `${formatNumber(state.max_discharge_power_kw)} kW` : '-- kW';
+    if (insulationElem) insulationElem.textContent = state.insulation_kohm != null ? `${formatNumber(state.insulation_kohm)} kOhm` : '-- kOhm';
 }
 
 function updateStatusSection(point) {
@@ -316,11 +333,16 @@ function updateStatusSection(point) {
     const updatedElem = document.getElementById('status-updated');
     const sourceElem = document.getElementById('status-source');
     const rawElem = document.getElementById('status-raw');
+    const statusTextElem = document.getElementById('status-text');
+    const statusCodeElem = document.getElementById('status-code');
+    const alarmsElem = document.getElementById('status-alarms');
     
     const modeLabel = point.mode || '—';
     const bitsLabel = point.status_bits || '—';
     const updatedLabel = formatTimestamp(point.timestamp);
     const sourceLabel = point.telemetry_source === 'mqtt' ? 'MQTT' : 'Simulation';
+    const statusText = point.status_text || '—';
+    const statusCode = point.status_code != null ? String(point.status_code) : '--';
     
     if (modeElem && lastStatusSnapshot.mode !== modeLabel) {
         modeElem.textContent = modeLabel;
@@ -337,6 +359,31 @@ function updateStatusSection(point) {
     if (sourceElem && lastStatusSnapshot.source !== sourceLabel) {
         sourceElem.textContent = sourceLabel;
         lastStatusSnapshot.source = sourceLabel;
+    }
+    if (statusTextElem && lastStatusSnapshot.text !== statusText) {
+        statusTextElem.textContent = statusText;
+        lastStatusSnapshot.text = statusText;
+    }
+    if (statusCodeElem && lastStatusSnapshot.code !== statusCode) {
+        statusCodeElem.textContent = `Code: ${statusCode}`;
+        lastStatusSnapshot.code = statusCode;
+    }
+    
+    if (alarmsElem) {
+        const alarms = Array.isArray(point.active_alarms) ? point.active_alarms.filter(Boolean) : [];
+        alarmsElem.innerHTML = '';
+        if (!alarms.length) {
+            const li = document.createElement('li');
+            li.style.color = '#6b7280';
+            li.textContent = 'Keine aktiven Alarme';
+            alarmsElem.appendChild(li);
+        } else {
+            alarms.forEach(alarm => {
+                const li = document.createElement('li');
+                li.textContent = alarm;
+                alarmsElem.appendChild(li);
+            });
+        }
     }
     
     if (rawElem && point.raw) {

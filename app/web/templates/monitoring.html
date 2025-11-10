@@ -6,6 +6,29 @@
     <p class="subtitle">Live-Überwachung des BESS – SoC, Spannungen, Temperaturen und Statusbits</p>
 </div>
 
+<div class="grid grid-cols-4 mb-6" id="monitoring-limits">
+    <div class="card">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">State of Health</p>
+        <p style="font-size: 26px; font-weight: 700; color: #a855f7;" id="kpi-soh">-- %</p>
+        <p style="color: #6b7280; font-size: 12px;">Bewertung laut BMS</p>
+    </div>
+    <div class="card">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Max. Ladeleistung</p>
+        <p style="font-size: 26px; font-weight: 700; color: #34d399;" id="kpi-max-charge">-- kW</p>
+        <p style="color: #6b7280; font-size: 12px;">Zulässig laut BMS</p>
+    </div>
+    <div class="card">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Max. Entladeleistung</p>
+        <p style="font-size: 26px; font-weight: 700; color: #f97316;" id="kpi-max-discharge">-- kW</p>
+        <p style="color: #6b7280; font-size: 12px;">Zulässig laut BMS</p>
+    </div>
+    <div class="card">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Isolationswiderstand</p>
+        <p style="font-size: 26px; font-weight: 700; color: #facc15;" id="kpi-insulation">-- kOhm</p>
+        <p style="color: #6b7280; font-size: 12px;">Prüfung vor dem Einschalten</p>
+    </div>
+</div>
+
 <!-- KPI Cards -->
 <div class="grid grid-cols-4 mb-6" id="monitoring-kpis">
     <div class="card">
@@ -80,6 +103,17 @@
         <div style="padding: 12px; background: rgba(30, 41, 59, 0.6); border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.2);">
             <p style="color: #94a3b8; font-size: 13px; margin-bottom: 4px;">Quelle</p>
             <p style="color: #f1f5f9; font-weight: 600; font-size: 16px;" id="status-source">--</p>
+        </div>
+        <div style="padding: 12px; background: rgba(30, 41, 59, 0.6); border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.2);">
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 4px;">Systemstatus</p>
+            <p style="color: #f1f5f9; font-weight: 600; font-size: 16px;" id="status-text">--</p>
+            <p style="color: #6b7280; font-size: 12px;" id="status-code">Code: --</p>
+        </div>
+        <div style="grid-column: span 2; padding: 12px; background: rgba(30, 41, 59, 0.6); border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.2);">
+            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 4px;">Aktive Alarme</p>
+            <ul id="status-alarms" style="margin: 0; padding-left: 18px; color: #f87171; font-size: 13px;">
+                <li style="color: #6b7280;">Keine aktiven Alarme</li>
+            </ul>
         </div>
     </div>
     <div style="margin-top: 16px;">
