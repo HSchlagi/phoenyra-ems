@@ -217,6 +217,33 @@ mqtt:
       config: ems/config
       setpoints: ems/setpoints
       strategy: ems/strategy_override
+power_control:
+  enabled: false
+  max_power_kw: 500.0
+  auto_write: false
+  signals:
+    dso_trip:
+      register: status_word
+      mask: 4
+    safety_alarm:
+      register: alarm_word
+      mask: 1
+    dso_limit_pct:
+      register: active_power_limit_pct
+      scale: 0.1
+      min_pct: 0
+      max_pct: 100
+  writes:
+    remote_enable:
+      register: remote_enable
+      on: 1
+      off: 0
+    active_power_set_w:
+      register: active_power_set_w
+      scale: 1.0
+    active_power_limit_pct:
+      register: active_power_limit_pct
+      scale: 0.1
 prices:
   demo_mode: false
   provider: awattar

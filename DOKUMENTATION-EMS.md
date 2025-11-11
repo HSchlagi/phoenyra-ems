@@ -17,8 +17,8 @@ Phoenyra EMS (Energy Management System) ist ein intelligentes, strategiebasierte
 - ✅ **Live-Dashboard:** Echtzeit-Visualisierung mit Chart.js
 - ✅ **Analytics-Dashboard:** Historische Performance-Analyse
 - ✅ **Forecasts-Dashboard:** Prognosen und Marktdaten
-- ✅ **Settings-Dashboard:** System-Konfiguration mit MQTT-/Modbus-Assistent
-- ✅ **Monitoring-Dashboard:** Live-Telemetrie für SoC, SoH, Spannung, Temperatur, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarmbits
+- ✅ **Settings-Dashboard:** System-Konfiguration mit MQTT-/Modbus-Assistent & Power-Control Setup
+- ✅ **Monitoring-Dashboard:** Live-Telemetrie (SoC, SoH, Spannung, Temperatur, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarmbits) inkl. DSO-Power-Control-KPI (Normal/Safety/Abschalten mit Limit)
 - ✅ **KPI-Tracking:** Gewinn, Zyklen, SoC, Strategien
 - ✅ **Navigation:** Professionelles UI mit Tabs
 
@@ -28,7 +28,7 @@ Phoenyra EMS (Energy Management System) ist ein intelligentes, strategiebasierte
 - ✅ **SQLite DB:** Historische Datenspeicherung
 - ✅ **SSE:** Server-Sent Events für Live-Updates
 - ✅ **MQTT:** IoT-Integration (optional)
-- ✅ **Modbus:** Geräte-Integration via Profilbibliothek (z. B. Hithium ESS) inkl. Skalierung, Alarmbits, RTC-Synchronisation & UI-gestütztem Register-Editor
+- ✅ **Modbus & Power-Control:** Geräte-Integration via Profilbibliothek (z. B. Hithium ESS, WSTECH PCS) inkl. Skalierung, Alarmbits, RTC-Synchronisation, UI-gestütztem Register-Editor sowie Power-Control-Logik (Trip, Prozentlimit, Auto-Write)
 
 ---
 
@@ -93,6 +93,7 @@ phoenyra-EMS/
 │   │   └── ems_history.db        # SQLite Historien-Datenbank
 │   ├── ems/
 │   │   ├── controller.py         # EMS Core Controller
+│   │   ├── power_control.py      # Power-Control / DSO-Logik
 │   │   ├── optimizer.py          # Optimierungs-Engine
 │   │   ├── strategy_manager.py   # Strategien-Manager
 │   │   ├── optimizers/
@@ -421,6 +422,14 @@ modbus:
   - Standard-Verbindungsparameter (Port, Slave-ID, Poll-Intervall)
 - Erweiterung: Weitere Hersteller können durch Ergänzung eines neuen Eintrags im Dictionary `MODBUS_PROFILES` hinzugefügt werden.
 - UI-Integration: Profile stehen im Settings-Dashboard zur Auswahl; beim Wechsel wird das Register-Mapping automatisch aktualisiert.
+
+### **Power-Control & DSO-Logik**
+
+- Konfiguration über `power_control` in `app/config/ems.yaml` (standardmäßig deaktiviert). Enthält Mapping für `dso_trip`, `safety_alarm`, `dso_limit_pct`, maximale Leistung und Auto-Write-Optionen.
+- Implementierung in `app/ems/power_control.py`: wertet Signale aus, erstellt `PowerControlDecision` (wirksamer Sollwert, Limit-Grund) und bereitet Modbus-Schreibkommandos vor.
+- `app/ems/controller.py` integriert die Entscheidungen in den Fahrplan-Setpoint und schreibt resultierende Felder in `PlantState` (`remote_shutdown_requested`, `active_power_limit_w`, `power_limit_reason`).
+- Monitoring zeigt den aktuellen Status (Normal/Safety/Abschalten) samt Limit (%) und Grund; ermöglicht schnelle Diagnose bei Netzbetreiber-Eingriffen.
+- Optionales `auto_write`: schreibt `remote_enable`, `active_power_set_w` und `active_power_limit_pct` auf das ausgewählte Modbus-Profil (z. B. WSTECH PCS).
 
 ### **RTC-Synchronisation**
 

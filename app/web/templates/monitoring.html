@@ -30,7 +30,7 @@
 </div>
 
 <!-- KPI Cards -->
-<div class="grid grid-cols-4 mb-6" id="monitoring-kpis">
+<div class="grid grid-cols-5 mb-6" id="monitoring-kpis">
     <div class="card">
         <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">State of Charge</p>
         <p style="font-size: 30px; font-weight: 700; color: #38bdf8;" id="kpi-soc">-- %</p>
@@ -50,6 +50,11 @@
         <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Temperatur</p>
         <p style="font-size: 30px; font-weight: 700; color: #f97316;" id="kpi-temperature">-- °C</p>
         <p style="color: #6b7280; font-size: 12px;">Batterie / Zellverbund</p>
+    </div>
+    <div class="card">
+        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">DSO Status</p>
+        <p style="font-size: 22px; font-weight: 700; color: #fca5a5;" id="kpi-dso-trip">—</p>
+        <p style="color: #6b7280; font-size: 12px;">Limit: <span id="kpi-dso-limit">—</span></p>
     </div>
 </div>
 
@@ -75,6 +80,27 @@
         </h2>
         <div style="height: 320px; position: relative;">
             <canvas id="powerChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Powerflow Sankey -->
+<div class="card powerflow-card" style="margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <h2 style="margin: 0;">
+            <svg class="text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 4a1 1 0 011-1h3a1 1 0 011 1v2h4V4a1 1 0 011-1h3a1 1 0 011 1v12a1 1 0 01-1 1h-3a1 1 0 01-1-1v-2H8v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm4 1H5v10h2V5zm8 0h-2v10h2V5z"></path>
+            </svg>
+            Powerflow (letzte 5&nbsp;min)
+        </h2>
+        <button id="powerflow-toggle" type="button" aria-controls="powerflow-body" aria-expanded="true" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.25); color: #e2e8f0; padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;">
+            Einklappen
+        </button>
+    </div>
+    <div id="powerflow-body">
+        <div id="powerflow-diagram" style="height: 340px; margin-top: 12px;"></div>
+        <div id="powerflow-summary" style="margin-top: 16px; padding: 12px; background: rgba(15, 23, 42, 0.65); border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.18); color: #94a3b8; font-size: 13px;">
+            Noch keine Powerflow-Daten verfügbar.
         </div>
     </div>
 </div>
@@ -123,6 +149,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/monitoring.js') }}"></script>
 {% endblock %}

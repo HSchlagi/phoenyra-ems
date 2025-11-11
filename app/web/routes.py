@@ -139,6 +139,15 @@ def api_monitoring_telemetry():
     })
 
 
+@bp.route('/api/monitoring/powerflow')
+@login_required
+def api_monitoring_powerflow():
+    """Aggregierte Energieflüsse für Sankey-Diagramm"""
+    minutes = request.args.get('minutes', 5, type=int)
+    power_flow = current_app.ems.get_power_flow(minutes=max(1, minutes))
+    return jsonify(power_flow)
+
+
 @bp.route('/api/events')
 @login_required
 def sse():

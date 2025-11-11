@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List, Tuple
 
 from .strategy_manager import StrategyManager
+from .power_control import PowerControlManager, PowerControlDecision
 from services.prices.awattar import get_day_ahead
 from services.forecast.simple import pv_forecast, load_forecast
 from services.forecast.prophet_forecaster import ProphetForecaster
@@ -57,6 +58,9 @@ class PlantState:
     
     # Sollwerte
     setpoint_kw: float = 0.0  # Aktueller Sollwert
+    active_power_limit_w: Optional[float] = None
+    power_limit_reason: Optional[str] = None
+    remote_shutdown_requested: bool = False
     
     # EMS-Informationen
     active_strategy: str = 'arbitrage'
@@ -66,6 +70,11 @@ class PlantState:
     # Site
     site_id: int = 1
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    
+    # Power-Control / DSO
+    dso_trip: bool = False
+    safety_alarm: bool = False
+    dso_limit_pct: Optional[float] = None
 
 
 @dataclass
@@ -125,6 +134,9 @@ class EmsCore:
         db_path = cfg.get('database', {}).get('history_path', 'data/ems_history.db')
         self.history_db = HistoryDatabase(db_path)
         logger.info("Historical database initialized")
+        
+        # Power-Control Manager (DSO / Safety Prioritäten)
+        self.power_control_manager = PowerControlManager(cfg.get('power_control', {}))
         
         # Optimierungs-Intervall
         self.optimization_interval_minutes = cfg.get('ems', {}).get('optimization_interval_minutes', 15)
@@ -363,6 +375,11 @@ class EmsCore:
                 self.state.alarm = False
 
             self.state.timestamp = datetime.now(timezone.utc).isoformat()
+            
+            signals = self.power_control_manager.ingest_status(status)
+            self.state.dso_trip = signals.dso_trip
+            self.state.safety_alarm = signals.safety_alarm
+            self.state.dso_limit_pct = signals.dso_limit_pct
 
         payload = dict(status)
         if alarms is not None:
@@ -450,7 +467,13 @@ class EmsCore:
                 'max_discharge_current_a': self.state.max_discharge_current_a,
                 'insulation_kohm': self.state.insulation_kohm,
                 'alarms': list(self.state.active_alarms),
-                'telemetry_source': source
+                'telemetry_source': source,
+                'dso_trip': self.state.dso_trip,
+                'safety_alarm': self.state.safety_alarm,
+                'dso_limit_pct': self.state.dso_limit_pct,
+                'active_power_limit_w': self.state.active_power_limit_w,
+                'power_limit_reason': self.state.power_limit_reason,
+                'remote_shutdown_requested': self.state.remote_shutdown_requested,
             }
         
         if payload:
@@ -472,6 +495,144 @@ class EmsCore:
         
         return data
 
+    def get_power_flow(self, minutes: int = 5) -> Dict[str, Any]:
+        """Aggregiert Energieflüsse (kWh) für Powerflow-Diagramm"""
+        telemetry = self.get_recent_telemetry(minutes=minutes, limit=0)
+        if len(telemetry) < 2:
+            return {
+                'generated_at': datetime.now(timezone.utc).isoformat(),
+                'interval_minutes': minutes,
+                'links': [],
+                'summary': {
+                    'pv_generated_kwh': 0.0,
+                    'load_consumed_kwh': 0.0,
+                    'bess_charge_kwh': 0.0,
+                    'bess_discharge_kwh': 0.0,
+                    'grid_import_kwh': 0.0,
+                    'grid_export_kwh': 0.0
+                }
+            }
+
+        def _as_float(sample: Dict[str, Any], key: str) -> float:
+            value = sample.get(key)
+            if value is None:
+                return 0.0
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return 0.0
+
+        flows = {
+            ('PV', 'Last'): 0.0,
+            ('PV', 'Batterie'): 0.0,
+            ('PV', 'Netz'): 0.0,
+            ('Batterie', 'Last'): 0.0,
+            ('Batterie', 'Netz'): 0.0,
+            ('Netz', 'Last'): 0.0,
+            ('Netz', 'Batterie'): 0.0,
+        }
+        summary = {
+            'pv_generated_kwh': 0.0,
+            'load_consumed_kwh': 0.0,
+            'bess_charge_kwh': 0.0,
+            'bess_discharge_kwh': 0.0,
+            'grid_import_kwh': 0.0,
+            'grid_export_kwh': 0.0
+        }
+
+        try:
+            prev = telemetry[0]
+            prev_ts = datetime.fromisoformat(prev['timestamp'])
+        except (KeyError, ValueError, TypeError):
+            prev = None
+            prev_ts = None
+
+        for point in telemetry[1:]:
+            if not prev_ts:
+                try:
+                    prev = point
+                    prev_ts = datetime.fromisoformat(point['timestamp'])
+                except (KeyError, ValueError, TypeError):
+                    prev = None
+                    prev_ts = None
+                continue
+
+            try:
+                current_ts = datetime.fromisoformat(point['timestamp'])
+            except (KeyError, ValueError, TypeError):
+                prev = point
+                prev_ts = None
+                continue
+
+            delta_hours = (current_ts - prev_ts).total_seconds() / 3600.0
+            if delta_hours <= 0:
+                prev = point
+                prev_ts = current_ts
+                continue
+
+            load_kw = max((_as_float(prev, 'p_load_kw') + _as_float(point, 'p_load_kw')) / 2.0, 0.0)
+            pv_kw = max((_as_float(prev, 'p_pv_kw') + _as_float(point, 'p_pv_kw')) / 2.0, 0.0)
+            bess_kw = (_as_float(prev, 'p_bess_kw') + _as_float(point, 'p_bess_kw')) / 2.0
+            grid_kw = (_as_float(prev, 'p_grid_kw') + _as_float(point, 'p_grid_kw')) / 2.0
+
+            bess_discharge_kw = max(bess_kw, 0.0)
+            bess_charge_kw = max(-bess_kw, 0.0)
+            grid_import_kw = max(grid_kw, 0.0)
+            grid_export_kw = max(-grid_kw, 0.0)
+
+            summary['pv_generated_kwh'] += pv_kw * delta_hours
+            summary['load_consumed_kwh'] += load_kw * delta_hours
+            summary['bess_discharge_kwh'] += bess_discharge_kw * delta_hours
+            summary['bess_charge_kwh'] += bess_charge_kw * delta_hours
+            summary['grid_import_kwh'] += grid_import_kw * delta_hours
+            summary['grid_export_kwh'] += grid_export_kw * delta_hours
+
+            pv_to_load_kw = min(pv_kw, load_kw)
+            remaining_load_kw = max(load_kw - pv_to_load_kw, 0.0)
+
+            bess_to_load_kw = min(bess_discharge_kw, remaining_load_kw)
+            remaining_load_kw -= bess_to_load_kw
+
+            grid_to_load_kw = min(grid_import_kw, remaining_load_kw)
+            remaining_load_kw -= grid_to_load_kw
+
+            pv_surplus_kw = max(pv_kw - pv_to_load_kw, 0.0)
+            bess_charge_remaining_kw = bess_charge_kw
+
+            pv_to_bess_kw = min(pv_surplus_kw, bess_charge_remaining_kw)
+            pv_surplus_kw -= pv_to_bess_kw
+            bess_charge_remaining_kw -= pv_to_bess_kw
+
+            grid_to_bess_kw = min(max(grid_import_kw - grid_to_load_kw, 0.0), bess_charge_remaining_kw)
+            bess_charge_remaining_kw -= grid_to_bess_kw
+
+            pv_to_grid_kw = max(pv_surplus_kw, 0.0)
+            bess_to_grid_kw = max(bess_discharge_kw - bess_to_load_kw, 0.0)
+
+            flows[('PV', 'Last')] += pv_to_load_kw * delta_hours
+            flows[('PV', 'Batterie')] += pv_to_bess_kw * delta_hours
+            flows[('PV', 'Netz')] += pv_to_grid_kw * delta_hours
+            flows[('Batterie', 'Last')] += bess_to_load_kw * delta_hours
+            flows[('Batterie', 'Netz')] += bess_to_grid_kw * delta_hours
+            flows[('Netz', 'Last')] += grid_to_load_kw * delta_hours
+            flows[('Netz', 'Batterie')] += grid_to_bess_kw * delta_hours
+
+            prev = point
+            prev_ts = current_ts
+
+        links = [
+            {'source': src, 'target': tgt, 'energy_kwh': round(val, 3)}
+            for (src, tgt), val in flows.items()
+            if val > 0.0005
+        ]
+
+        return {
+            'generated_at': datetime.now(timezone.utc).isoformat(),
+            'interval_minutes': minutes,
+            'links': links,
+            'summary': {key: round(value, 3) for key, value in summary.items()}
+        }
+
     def decide(self):
         """
         Haupt-Entscheidungslogik
@@ -488,14 +649,14 @@ class EmsCore:
             self._run_optimization()
         
         record_simulation = False
+        control_decision: Optional[PowerControlDecision] = None
         
         with self._state_lock:
             # Hole Sollwert aus aktuellem Fahrplan
             if self.current_plan and self.current_plan.schedule:
-                setpoint = self._get_setpoint_from_plan(now)
-                self.state.setpoint_kw = setpoint
+                requested_setpoint_kw = self._get_setpoint_from_plan(now)
             else:
-                self.state.setpoint_kw = 0.0
+                requested_setpoint_kw = 0.0
             
             # Prüfe ob Telemetrie noch aktuell ist (max 120s)
             if self._live_telemetry and self._last_telemetry:
@@ -504,6 +665,18 @@ class EmsCore:
                     self._live_telemetry = False
                     self.state.telemetry_source = 'simulation'
                     logger.warning("Live telemetry stale (>120s); reverting to simulated values")
+            
+            # Power-Control Entscheidung anwenden
+            control_decision = self.power_control_manager.compute_decision(
+                requested_power_kw=requested_setpoint_kw,
+                constraints=self.constraints,
+            )
+            self.state.setpoint_kw = control_decision.effective_power_kw
+            self.state.remote_shutdown_requested = control_decision.shutdown
+            self.state.active_power_limit_w = control_decision.active_power_limit_w
+            self.state.power_limit_reason = control_decision.reason
+            if control_decision.dso_limit_pct is not None:
+                self.state.dso_limit_pct = control_decision.dso_limit_pct
             
             # Simuliere BESS-Reaktion nur wenn keine Live-Daten vorliegen
             if not self._live_telemetry:
@@ -534,6 +707,9 @@ class EmsCore:
         logger.debug(f"State: SoC={soc:.1f}%, "
                     f"Setpoint={setpoint_kw:.1f}kW, "
                     f"Strategy={strategy}")
+        
+        if control_decision:
+            self.power_control_manager.apply_commands(self.modbus_client, control_decision)
         
         if record_simulation:
             self._record_telemetry('simulation')

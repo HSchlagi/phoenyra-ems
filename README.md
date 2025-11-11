@@ -73,7 +73,7 @@ phoenyra-EMS/
 - ✅ **SQLite DB:** Historische Datenspeicherung
 - ✅ **SSE:** Server-Sent Events für Live-Updates
 - ✅ **MQTT:** IoT-Integration (optional)
-- ✅ **Modbus:** Geräte-Integration via Profilbibliothek (z. B. Hithium ESS) inkl. Skalierung, Alarmbits, Zeit-Sync & UI-gestütztem Register-Editor
+- ✅ **Modbus & Power-Control:** Geräte-Integration via Profilbibliothek (z. B. Hithium ESS, WSTECH PCS) inkl. Skalierung, Alarmbits, Zeit-Sync, UI-gestütztem Register-Editor sowie vorbereiteter DSO-/Sicherheitslogik (Trip, Limit, Auto-Write)
 
 ### **🐳 Docker & Deployment**
 - ✅ **Docker Compose:** Containerisierte Deployment
@@ -210,6 +210,7 @@ examples.run_peak_shaving_example()
 ### Monitoring (`/monitoring`) ⭐ NEU
 - **Live-Telemetrie:** SoC, SoH, Lade-/Entladeleistung, Netz-/Last-/PV-Leistung
 - **Grenzwerte:** Anzeige der zulässigen Lade-/Entladeleistung & Ströme laut BMS, Isolationswiderstand
+- **DSO & Power-Control:** KPI für Netzbetreiberstatus (Normal/Safety/Abschalten) inkl. wirksamem Limit (%), Statusgründe und Vorwarnung bei deaktivierter Power-Control
 - **Statusübersicht:** Systemstatus inkl. Statuscode, aktive Alarmmeldungen & Datenquelle (MQTT/Modbus/Simulation)
 - **Charts:** SoC-Verlauf & Leistungskanäle der letzten 60 min
 - **Rohdaten:** JSON-View der letzten Telemetrie-Payloads, automatisch entprellt
@@ -226,7 +227,8 @@ examples.run_peak_shaving_example()
 ### Settings (`/settings`)
 - **Strategiemodus:** Auto/Manuell inkl. Sofortumschaltung
 - **MQTT-Konfiguration:** Broker, Credentials, Topics mit Testfunktion
-- **Modbus-Konfiguration:** Profil-Auswahl (z. B. Hithium), Verbindungstyp, Host/Port/Slave-ID, Poll-Intervall sowie dynamischer Register-Editor inkl. Funktionscode, Skalierung & Alarmdefinitionen
+- **Modbus-Konfiguration:** Profil-Auswahl (z. B. Hithium, WSTECH), Verbindungstyp, Host/Port/Slave-ID, Poll-Intervall sowie dynamischer Register-Editor inkl. Funktionscode, Skalierung & Alarmdefinitionen
+- **Power-Control:** Aktivierung der DSO-/Sicherheitslogik (Trip, Prozentlimit) und optionales Auto-Write der Modbus-Kommandos (`remote_enable`, `active_power_set_w`, `active_power_limit_pct`)
 
 ## 📡 **API-Endpunkte**
 
