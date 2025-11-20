@@ -268,9 +268,14 @@ prices:
   provider: awattar
   region: AT
 sites:
-  db_path: ../data/ems.db
   default_site_id: 1
 strategies:
+  ai_selection:
+    enabled: true
+    min_samples: 100
+    model_path: data/ai_strategy_model.pkl
+    retrain_interval_days: 7
+    training_data_days: 30
   arbitrage:
     min_price_spread: 20.0
     min_profit_threshold: 5.0

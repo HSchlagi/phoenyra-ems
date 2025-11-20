@@ -131,33 +131,63 @@ async function loadAnalytics() {
         // Performance Summary
         const summaryResp = await fetch('/api/analytics/summary?days=30');
         if (summaryResp.ok) {
-            const summary = await summaryResp.json();
-            console.log('Summary:', summary);
-            updateSummary(summary);
+            const contentType = summaryResp.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const summary = await summaryResp.json();
+                console.log('Summary:', summary);
+                if (summary && !summary.error) {
+                    updateSummary(summary);
+                } else {
+                    console.log('No summary data yet:', summary.error || 'Empty summary');
+                    showNoDataMessage();
+                }
+            } else {
+                console.warn('Unexpected content type:', contentType);
+                showNoDataMessage();
+            }
         } else {
-            console.log('No summary data yet');
+            console.log('Summary request failed:', summaryResp.status);
             showNoDataMessage();
         }
 
         // Daily Metrics
         const metricsResp = await fetch('/api/analytics/daily?days=30');
         if (metricsResp.ok) {
-            const data = await metricsResp.json();
-            console.log('Daily metrics:', data);
-            if (data.metrics && data.metrics.length > 0) {
-                updateProfitChart(data.metrics);
-                document.getElementById('no-data-info').style.display = 'none';
+            const contentType = metricsResp.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await metricsResp.json();
+                console.log('Daily metrics:', data);
+                if (data.metrics && data.metrics.length > 0) {
+                    updateProfitChart(data.metrics);
+                    const noDataInfo = document.getElementById('no-data-info');
+                    if (noDataInfo) noDataInfo.style.display = 'none';
+                } else {
+                    console.log('No daily metrics data');
+                }
+            } else {
+                console.warn('Unexpected content type for metrics:', contentType);
             }
+        } else {
+            console.log('Daily metrics request failed:', metricsResp.status);
         }
 
         // Optimization History
         const historyResp = await fetch('/api/history/optimization?days=7');
         if (historyResp.ok) {
-            const data = await historyResp.json();
-            console.log('Optimization history:', data);
-            if (data.history && data.history.length > 0) {
-                updateOptimizationTable(data.history);
+            const contentType = historyResp.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await historyResp.json();
+                console.log('Optimization history:', data);
+                if (data.history && data.history.length > 0) {
+                    updateOptimizationTable(data.history);
+                } else {
+                    console.log('No optimization history data');
+                }
+            } else {
+                console.warn('Unexpected content type for history:', contentType);
             }
+        } else {
+            console.log('Optimization history request failed:', historyResp.status);
         }
     } catch (err) {
         console.error('Error loading analytics:', err);
@@ -238,17 +268,25 @@ function updateOptimizationTable(history) {
 }
 
 function initializeCharts() {
+    console.log('Initializing charts...');
+    
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded!');
+        return;
+    }
+    
     const textColor = 'rgb(229, 231, 235)';
     const gridColor = 'rgba(75, 85, 99, 0.3)';
     
     // Profit Chart
     const profitCtx = document.getElementById('profitChart');
     if (!profitCtx) {
-        console.error('profitChart not found');
+        console.error('profitChart canvas not found');
         return;
     }
     
-    profitChart = new Chart(profitCtx.getContext('2d'), {
+    try {
+        profitChart = new Chart(profitCtx.getContext('2d'), {
         type: 'bar',
         data: {
             labels: [],
@@ -283,15 +321,20 @@ function initializeCharts() {
         }
     });
 
+    } catch (err) {
+        console.error('Error initializing profit chart:', err);
+    }
+
     // Strategy Chart
     const strategyCtx = document.getElementById('strategyChart');
     if (!strategyCtx) {
-        console.error('strategyChart not found');
+        console.error('strategyChart canvas not found');
         return;
     }
     
-    strategyChart = new Chart(strategyCtx.getContext('2d'), {
-        type: 'pie',
+    try {
+        strategyChart = new Chart(strategyCtx.getContext('2d'), {
+            type: 'pie',
         data: {
             labels: [],
             datasets: [{
@@ -327,6 +370,11 @@ function initializeCharts() {
             }
         }
     });
+    } catch (err) {
+        console.error('Error initializing strategy chart:', err);
+    }
+    
+    console.log('Charts initialized successfully');
 }
 </script>
 {% endblock %}

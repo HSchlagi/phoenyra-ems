@@ -405,6 +405,22 @@ def test_forecasting_accuracy():
 - [x] Real-time Data Streaming (SSE)
 - [x] Configuration Management
 
+### **Phase 2.5: Multi-Site/Multi-BESS-Integration** ✅ **ABGESCHLOSSEN** ⭐ NEU (November 2025)
+- [x] MultiSiteManager für zentrale Verwaltung mehrerer Standorte
+- [x] Standort-spezifische Konfigurationen (MQTT, Modbus, BESS, Strategien)
+- [x] Standort-Verwaltung (CRUD-Operationen)
+- [x] Standort-Duplikation
+- [x] Aggregierte Datenansicht
+- [x] UI-Integration (Standort-Auswahl, dedizierte Standorte-Seite)
+
+### **Phase 3.1: KI-basierte Strategie-Auswahl** ✅ **ABGESCHLOSSEN** ⭐ NEU (November 2025)
+- [x] AIStrategySelector mit Random Forest Classifier
+- [x] Market Data Service für Preis-Trends und Volatilität
+- [x] Feature-Extraktion (17 Features: SoC, SoH, Temperatur, Marktdaten, Prognosen, Zeitfeatures)
+- [x] Automatisches Modell-Training mit historischen Daten
+- [x] Feature-Importance Visualisierung
+- [x] UI-Integration in Settings
+
 ---
 
 ## ✅ **Erreichte Fortschritte (Aktualisiert: Oktober 2025)**
@@ -441,6 +457,24 @@ def test_forecasting_accuracy():
 - **aWATTar Integration** - Day-Ahead Strompreise (AT/DE)
 - **OpenWeatherMap** - Wetterdaten für PV-Prognosen
 - **BESS Simulation** - Nahtlose Integration mit bestehender Simulation
+- **Multi-Site API** - Standort-Management und aggregierte Daten ⭐ NEU
+- **AI Strategy API** - KI-basierte Strategie-Auswahl Endpunkte ⭐ NEU
+
+#### **6. Multi-Site/Multi-BESS Management** ✅ ⭐ NEU
+- **MultiSiteManager** - Zentrale Orchestrierung mehrerer EmsCore-Instanzen
+- **Standort-Verwaltung** - Vollständige CRUD-Operationen für Standorte
+- **Standort-spezifische Konfigurationen** - MQTT, Modbus, BESS-Parameter, Strategien, Einspeisebegrenzung, Netzanschluss, Netzentgelte
+- **Standort-Duplikation** - Kopieren bestehender Standort-Konfigurationen
+- **Aggregierte Daten** - Konsolidierte Ansicht aller Standorte
+- **UI-Integration** - Standort-Auswahl in Settings, dedizierte Standorte-Seite
+
+#### **7. KI-basierte Strategie-Auswahl** ✅ ⭐ NEU
+- **AIStrategySelector** - Random Forest Classifier für intelligente Strategieauswahl
+- **Market Data Service** - Preis-Trends, Volatilität und Marktanalyse
+- **Feature-Extraktion** - 17 Features (SoC, SoH, Temperatur, Marktdaten, Prognosen, Zeitfeatures)
+- **Modell-Training** - Automatisches Training mit historischen Optimierungsdaten
+- **Feature-Importance** - Visualisierung der wichtigsten Entscheidungsfaktoren
+- **UI-Integration** - Konfiguration und Monitoring in Settings
 
 ### **🔧 Kürzlich behobene Probleme:**
 - **MQTT Topic Configuration** - Vollständig funktionsfähige Topic-Verwaltung
@@ -448,12 +482,17 @@ def test_forecasting_accuracy():
 - **Import Path Problems** - Alle Module korrekt verknüpft
 - **Favicon Integration** - Professionelles Web-Icon hinzugefügt
 - **Settings Page** - MQTT/Modbus Konfiguration vollständig funktional
+- **AI-Auswahl Flackern** - Endlosschleifen behoben, robuste Fehlerbehandlung ⭐ NEU
+- **Analytics Charts** - Chart-Initialisierung und API-Endpunkte für Multi-Site angepasst ⭐ NEU
+- **Multi-Site API** - Alle Endpunkte für Multi-Site-Unterstützung erweitert ⭐ NEU
 
 ### **📊 Aktuelle System-Statistiken:**
 - **Strategien:** 4 implementiert (Arbitrage, Peak Shaving, Self-Consumption, Load Balancing)
-- **API Endpoints:** 25+ REST API Endpunkte
-- **Web Pages:** 6 Hauptseiten (Dashboard, Settings, Analytics, Forecasts, Login)
-- **Database Tables:** 8 Tabellen für historische Daten
+- **KI-Strategie-Auswahl:** Machine Learning (Random Forest) für intelligente Strategieauswahl ⭐ NEU
+- **Multi-Site Support:** Unbegrenzte Anzahl von Standorten mit individueller Konfiguration ⭐ NEU
+- **API Endpoints:** 35+ REST API Endpunkte (inkl. Multi-Site und AI)
+- **Web Pages:** 7 Hauptseiten (Dashboard, Monitoring, Analytics, Forecasts, Settings, Sites, Users)
+- **Database Tables:** 8 Tabellen für historische Daten + User-Datenbank
 - **Communication Protocols:** MQTT, Modbus TCP/RTU, HTTP/HTTPS
 - **Forecasting Methods:** 3 Methoden (Simple, Prophet ML, Weather-based)
 
@@ -491,19 +530,21 @@ def test_forecasting_accuracy():
 ## 🔮 **Zukünftige Erweiterungen**
 
 ### **Kurzfristig (3-6 Monate):**
-- Machine Learning für Prognosen
+- Erweiterte ML-Prognosen (mehr Datenquellen, bessere Genauigkeit)
 - Erweiterte Optimierungsalgorithmen
 - Mobile App für Monitoring
 
 ### **Mittelfristig (6-12 Monate):**
-- VPP-Integration
-- Blockchain-Integration
-- IoT-Sensor-Integration
+- VPP-Integration (Virtuelles Kraftwerk Anbindung)
+- Blockchain-Integration (Transparenz und Nachverfolgbarkeit)
+- IoT-Sensor-Integration (Zusätzliche Sensoren für erweiterte Überwachung)
 
 ### **Langfristig (1-2 Jahre):**
-- KI-basierte Strategie-Auswahl
 - Multi-Markt-Arbitrage
 - Internationale Grid-Integration
+- Erweiterte KI-Features (Deep Learning, Reinforcement Learning)
+
+📖 **Detaillierte Vorschläge:** Siehe [ZUKUNFTIGE_ERWEITERUNGEN.md](ZUKUNFTIGE_ERWEITERUNGEN.md)
 
 ---
 
@@ -558,7 +599,7 @@ Das EMS-Modul ist **vollständig implementiert** und fungiert als strategischer 
 ---
 
 *Erstellt am: Oktober 2025*
-*Version: 2.0.0 - Production Ready*
+*Version: 2.5.0 - Production Ready mit Multi-Site & KI*
 *Autor: Cursor AI Assistant*
-*Letzte Aktualisierung: Oktober 2025*
+*Letzte Aktualisierung: November 2025*
 *Status: Vollständig implementiert und produktionsreif*

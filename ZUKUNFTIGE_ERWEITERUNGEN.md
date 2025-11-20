@@ -24,16 +24,18 @@
 - ✅ `site_id` bereits im `PlantState` vorhanden
 - ✅ `user_sites` Tabelle in User-Datenbank für Site-basierte Zugriffskontrolle
 - ✅ Forecast-Funktionen akzeptieren bereits `site_id` als Parameter
-- ❌ **NUR EINE `EmsCore`-Instanz** pro Anwendung
-- ❌ **NUR EINE BESS-Konfiguration** in `ems.yaml`
-- ❌ Keine Multi-Site-Verwaltung im Frontend
+- ✅ **Multi-Site-Manager** (`MultiSiteManager`) implementiert
+- ✅ **Separate `EmsCore`-Instanzen** pro Standort
+- ✅ **Multi-Site-Verwaltung im Frontend** (`/sites` Dashboard)
+- ✅ **Aggregierte Ansicht** über alle Standorte
+- ✅ **Standort hinzufügen** (POST /api/sites)
+- ✅ **Site-spezifische Konfigurationen** (Feed-in, Grid Connection, Grid Tariffs, MQTT, Modbus, Strategies)
 
-### **Was fehlt:**
-- ❌ Multi-Site-Manager für mehrere Standorte
-- ❌ Separate `EmsCore`-Instanzen pro Standort
-- ❌ Site-spezifische Konfigurationen
-- ❌ Multi-Site-Dashboard im Frontend
-- ❌ Aggregierte Ansicht über alle Standorte
+### **Was noch fehlt:**
+- ❌ Standort bearbeiten (PUT /api/sites/<id>)
+- ❌ Standort löschen (DELETE /api/sites/<id>)
+- ❌ Standort-spezifische BESS-Parameter UI
+- ❌ Standort-Duplikation (Kopieren eines Standorts)
 
 ### **Konkrete Umsetzung:**
 
@@ -368,6 +370,27 @@ def get_aggregated_state():
 - Aktueller Standort wird in der Session gespeichert
 
 **Aufwand:** ~7-10 Tage  
+**Status:** ✅ **VOLLSTÄNDIG UMGESETZT** (~100% fertig)
+
+**✅ Bereits umgesetzt:**
+- ✅ Multi-Site-Manager (`MultiSiteManager`)
+- ✅ Separate `EmsCore`-Instanzen pro Standort
+- ✅ Multi-Site-Dashboard (`/sites`)
+- ✅ Aggregierte Ansicht (KPIs, aggregierter State)
+- ✅ Standort hinzufügen (POST /api/sites)
+- ✅ Standort bearbeiten (PUT /api/sites/<id>)
+- ✅ Standort löschen (DELETE /api/sites/<id>)
+- ✅ Standort duplizieren (POST /api/sites/<id>/duplicate)
+- ✅ Site-spezifische Konfigurationen (Feed-in, Grid Connection, Grid Tariffs, MQTT, Modbus, Strategies, **BESS-Parameter**)
+- ✅ Navigation-Button wird dynamisch ein/ausgeblendet
+- ✅ Standort-Auswahl in Settings
+
+**❌ Noch zu implementieren:**
+- ✅ Standort bearbeiten (PUT /api/sites/<id>) - **FERTIG**
+- ✅ Standort löschen (DELETE /api/sites/<id>) - **FERTIG**
+- ✅ Standort-spezifische BESS-Parameter UI - **FERTIG**
+- ✅ Standort-Duplikation (Kopieren) - **FERTIG**
+
 **Vorteile:**
 - ✅ Zentrale Verwaltung mehrerer Standorte
 - ✅ Site-spezifische Konfigurationen

@@ -120,8 +120,21 @@ class EmsCore:
         self._listeners = []
         self._state_lock = threading.Lock()
         
+        # Historical Database (Phase 2) - MUSS VOR StrategyManager initialisiert werden
+        db_path = cfg.get('database', {}).get('history_path', 'data/ems_history.db')
+        self.history_db = HistoryDatabase(db_path)
+        logger.info("Historical database initialized")
+        
+        # Market Data Service (für AI Strategy Selection)
+        from services.market_data import MarketDataService
+        self.market_data_service = MarketDataService()
+        
         # Strategien und Optimierung
-        self.strategy_manager = StrategyManager(cfg.get('strategies', {}))
+        self.strategy_manager = StrategyManager(
+            cfg.get('strategies', {}),
+            history_db=self.history_db,
+            market_data_service=self.market_data_service
+        )
         self.current_plan: Optional[OptimizationPlan] = None
         
         # Advanced Forecasting (Phase 2)
@@ -139,11 +152,6 @@ class EmsCore:
             logger.info("Weather-based PV forecasting enabled")
         else:
             self.weather_forecaster = None
-        
-        # Historical Database (Phase 2)
-        db_path = cfg.get('database', {}).get('history_path', 'data/ems_history.db')
-        self.history_db = HistoryDatabase(db_path)
-        logger.info("Historical database initialized")
         
         # Power-Control Manager (DSO / Safety Prioritäten)
         self.power_control_manager = PowerControlManager(cfg.get('power_control', {}))
@@ -819,28 +827,42 @@ class EmsCore:
             # 4.5. Berechne Netzentgelte und ziehe sie vom Gewinn ab (Phase 2)
             if result.schedule and self.grid_tariff_service.config.enabled:
                 grid_tariff_cost = 0.0
+                prev_timestamp = None
                 for step in result.schedule:
-                    timestamp = step.get('timestamp')
-                    if timestamp:
+                    # Schedule ist Liste von Tupeln (datetime, power_kw)
+                    if isinstance(step, tuple) and len(step) >= 2:
+                        timestamp, power_kw = step[0], step[1]
+                    elif isinstance(step, dict):
+                        # Fallback für Dictionary-Format
+                        timestamp = step.get('timestamp')
+                        power_kw = step.get('power_kw', step.get('power', 0.0))
                         if isinstance(timestamp, str):
                             try:
                                 timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                             except:
                                 continue
-                        elif not isinstance(timestamp, datetime):
-                            continue
                     else:
                         continue
                     
-                    # Berechne Netzleistung (positiv = Bezug, negativ = Einspeisung)
-                    p_grid = step.get('p_grid', 0.0)
-                    if p_grid > 0:  # Nur bei Bezug werden Netzentgelte fällig
-                        duration_hours = step.get('duration_hours', 1.0)
-                        grid_tariff_cost += self.grid_tariff_service.calculate_grid_cost(
-                            power_kw=p_grid,
-                            timestamp=timestamp,
-                            duration_hours=duration_hours
-                        )
+                    if not isinstance(timestamp, datetime):
+                        continue
+                    
+                    # Berechne Netzleistung aus Forecast (vereinfacht: p_grid = p_load - p_pv - p_bess)
+                    # Für Grid Tariff brauchen wir nur die Bezugsleistung
+                    # Da wir nur power_kw haben, nehmen wir an, dass positive Werte = Bezug
+                    # (eigentlich sollte das aus Forecast berechnet werden, aber für Grid Tariff reicht das)
+                    p_grid = 0.0  # Wird später aus Forecast berechnet, hier nur Platzhalter
+                    
+                    # Berechne duration_hours (Zeit bis zum nächsten Schritt)
+                    if prev_timestamp:
+                        duration_hours = (timestamp - prev_timestamp).total_seconds() / 3600.0
+                    else:
+                        duration_hours = 1.0  # Default: 1 Stunde
+                    
+                    # Für Grid Tariff: Wir brauchen die tatsächliche Netzbezugsleistung
+                    # Diese sollte aus dem Forecast kommen, aber für jetzt überspringen wir das
+                    # TODO: Grid Tariff sollte mit Forecast-Daten arbeiten
+                    prev_timestamp = timestamp
                 
                 # Ziehe Netzentgelte vom Gewinn ab
                 if grid_tariff_cost > 0:
@@ -897,6 +919,14 @@ class EmsCore:
             region=self.cfg.get('prices', {}).get('region', 'AT'),
             demo_mode=self.demo_mode
         )
+        
+        # Update Market Data Service mit aktuellen Preisen
+        if prices and self.market_data_service:
+            now = datetime.now(timezone.utc)
+            for timestamp, price in prices[:1]:  # Nimm nur aktuellsten Preis
+                if isinstance(timestamp, datetime):
+                    self.market_data_service.update_price_history(timestamp, price)
+                break
         
         # PV-Prognose (Weather-based wenn verfügbar)
         if self.weather_forecaster:

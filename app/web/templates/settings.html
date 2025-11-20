@@ -7,6 +7,30 @@
     <p class="subtitle">Konfiguration des EMS-Systems</p>
 </div>
 
+<!-- Site Selection (nur bei Multi-Site) -->
+{% if multi_site is defined and multi_site %}
+<div class="card" style="margin-bottom: 24px;">
+    <h2>
+        <svg class="text-blue-500" fill="currentColor" viewBox="0 0 20 20" style="width: 20px; height: 20px;">
+            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+        </svg>
+        Standort-Auswahl
+    </h2>
+    <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px;">
+            Konfiguration für Standort
+        </label>
+        <select id="site-selector" onchange="changeSite()" 
+                style="width: 100%; padding: 14px 16px; background: #0f172a; border: 2px solid #475569; border-radius: 10px; color: #fff; font-size: 15px; font-weight: 500; cursor: pointer;">
+            <option value="">Lade Standorte...</option>
+        </select>
+    </div>
+    <div id="site-info" style="padding: 12px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #93c5fd; font-size: 14px; display: none;">
+        <strong>Ausgewählt:</strong> <span id="selected-site-name">-</span>
+    </div>
+</div>
+{% endif %}
+
 <!-- Settings Container -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     
@@ -54,6 +78,48 @@
              style="padding: 16px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #93c5fd; font-size: 14px;">
             <strong>Aktuell:</strong> <span id="active-strategy-name">Lade...</span>
         </div>
+        
+        <!-- AI Strategy Selection -->
+        <div style="margin-top: 24px; padding: 20px; background: rgba(139, 92, 246, 0.1); border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 10px;">
+            <h3 style="color: #c4b5fd; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <span>🤖</span>
+                <span>KI-basierte Strategie-Auswahl</span>
+            </h3>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; color: #cbd5e1; cursor: pointer;">
+                    <input type="checkbox" id="ai-selection-enabled" onchange="toggleAISelection()" 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span>AI-Strategie-Auswahl aktivieren</span>
+                </label>
+            </div>
+            
+            <div id="ai-status" style="margin-bottom: 16px; padding: 12px; background: rgba(15, 23, 42, 0.6); border-radius: 8px; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="color: #94a3b8; font-size: 13px; font-weight: 600;">Status:</span>
+                    <span id="ai-status-text" style="color: #fbbf24; font-size: 13px; font-weight: 600;">Lade...</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #94a3b8; font-size: 13px; font-weight: 600;">Trainingsdaten:</span>
+                    <span id="ai-training-samples" style="color: #cbd5e1; font-size: 13px;">-</span>
+                </div>
+            </div>
+            
+            <div id="ai-actions" style="display: none;">
+                <button onclick="trainAIModel()" 
+                        style="width: 100%; padding: 10px 16px; background: #8b5cf6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
+                        onmouseover="this.style.background='#7c3aed'"
+                        onmouseout="this.style.background='#8b5cf6'">
+                    🎓 Modell jetzt trainieren
+                </button>
+                <button onclick="getAIFeatureImportance()" 
+                        style="width: 100%; padding: 10px 16px; background: rgba(139, 92, 246, 0.3); border: 1px solid rgba(139, 92, 246, 0.5); border-radius: 8px; color: #c4b5fd; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;"
+                        onmouseover="this.style.background='rgba(139, 92, 246, 0.4)'"
+                        onmouseout="this.style.background='rgba(139, 92, 246, 0.3)'">
+                    📊 Feature-Importance anzeigen
+                </button>
+            </div>
+        </div>
     </div>
     
     <!-- BESS Parameter -->
@@ -65,40 +131,63 @@
             BESS Parameter
         </h2>
         
-        <div style="color: #94a3b8; font-size: 14px; background: rgba(100, 116, 139, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-            ℹ️ Aktuelle Konfiguration aus <code style="color: #60a5fa;">config/ems.yaml</code>
+        {% if multi_site is defined and multi_site %}
+        <div id="bess-site-indicator" style="margin-bottom: 16px; padding: 10px 14px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #93c5fd; font-size: 13px; display: none;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+                <svg style="width: 16px; height: 16px;" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                </svg>
+                <strong>Standort:</strong> <span id="bess-site-name">Global</span>
+            </span>
+        </div>
+        {% endif %}
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Energiekapazität (kWh)</label>
+                <input type="number" id="bess-energy-capacity" step="0.1" min="0"
+                       style="width: 100%; padding: 10px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Max. Ladeleistung (kW)</label>
+                <input type="number" id="bess-power-charge-max" step="0.1" min="0"
+                       style="width: 100%; padding: 10px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Max. Entladeleistung (kW)</label>
+                <input type="number" id="bess-power-discharge-max" step="0.1" min="0"
+                       style="width: 100%; padding: 10px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">SoC Minimum (%)</label>
+                <input type="number" id="bess-soc-min" step="0.1" min="0" max="100"
+                       style="width: 100%; padding: 10px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">SoC Maximum (%)</label>
+                <input type="number" id="bess-soc-max" step="0.1" min="0" max="100"
+                       style="width: 100%; padding: 10px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Lade-Effizienz (%)</label>
+                <input type="number" id="bess-efficiency-charge" step="0.01" min="0" max="1"
+                       style="width: 100%; padding: 10px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Entlade-Effizienz (%)</label>
+                <input type="number" id="bess-efficiency-discharge" step="0.01" min="0" max="1"
+                       style="width: 100%; padding: 10px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
-            <div>
-                <p style="color: #9ca3af; margin-bottom: 4px;">Kapazität</p>
-                <p style="color: #fff; font-weight: 600;">200 kWh</p>
-            </div>
-            <div>
-                <p style="color: #9ca3af; margin-bottom: 4px;">Max Ladeleistung</p>
-                <p style="color: #fff; font-weight: 600;">100 kW</p>
-            </div>
-            <div>
-                <p style="color: #9ca3af; margin-bottom: 4px;">Max Entladeleistung</p>
-                <p style="color: #fff; font-weight: 600;">100 kW</p>
-            </div>
-            <div>
-                <p style="color: #9ca3af; margin-bottom: 4px;">SoC Min/Max</p>
-                <p style="color: #fff; font-weight: 600;">10% / 90%</p>
-            </div>
-            <div>
-                <p style="color: #9ca3af; margin-bottom: 4px;">Lade-Effizienz</p>
-                <p style="color: #fff; font-weight: 600;">95%</p>
-            </div>
-            <div>
-                <p style="color: #9ca3af; margin-bottom: 4px;">Entlade-Effizienz</p>
-                <p style="color: #fff; font-weight: 600;">95%</p>
-            </div>
-        </div>
+        <button onclick="saveBessConfig()" 
+                style="width: 100%; padding: 12px 20px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;"
+                onmouseover="this.style.background='#2563eb'"
+                onmouseout="this.style.background='#3b82f6'">
+            💾 BESS-Parameter speichern
+        </button>
         
-        <p style="margin-top: 16px; font-size: 13px; color: #64748b; text-align: center;">
-            Zum Ändern: <code style="color: #60a5fa;">app/config/ems.yaml</code> bearbeiten
-        </p>
+        <div id="bess-status-message" style="margin-top: 12px; padding: 10px; border-radius: 6px; font-size: 14px; text-align: center; display: none;"></div>
     </div>
 </div>
 
@@ -113,6 +202,17 @@
             </svg>
             MQTT Konfiguration
         </h2>
+        
+        {% if multi_site is defined and multi_site %}
+        <div id="mqtt-site-indicator" style="margin-bottom: 16px; padding: 10px 14px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #93c5fd; font-size: 13px; display: none;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+                <svg style="width: 16px; height: 16px;" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                </svg>
+                <strong>Standort:</strong> <span id="mqtt-site-name">Global</span>
+            </span>
+        </div>
+        {% endif %}
         
         <div style="margin-bottom: 20px;">
             <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px;">
@@ -243,6 +343,17 @@
             </svg>
             Modbus Konfiguration
         </h2>
+        
+        {% if multi_site is defined and multi_site %}
+        <div id="modbus-site-indicator" style="margin-bottom: 16px; padding: 10px 14px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #93c5fd; font-size: 13px; display: none;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+                <svg style="width: 16px; height: 16px;" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                </svg>
+                <strong>Standort:</strong> <span id="modbus-site-name">Global</span>
+            </span>
+        </div>
+        {% endif %}
         
         <div style="margin-bottom: 20px;">
             <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px;">
@@ -416,7 +527,83 @@
             </button>
         </div>
     </div>
-    
+</div>
+
+<!-- Multi-Site Management (eigener Bereich) -->
+<div class="mt-6">
+    <div class="card">
+        <h2>
+            <svg class="text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"></path>
+            </svg>
+            Multi-Site Management
+        </h2>
+        
+        <div style="margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px; background: rgba(15, 23, 42, 0.5); border: 2px solid rgba(59, 130, 246, 0.3); border-radius: 12px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 16px; font-weight: 700; color: #ffffff; cursor: pointer; display: block; margin-bottom: 6px;" for="multisite-enabled">
+                        Multi-Site-Modus aktivieren
+                    </label>
+                    <p style="font-size: 13px; color: #94a3b8; margin: 0;">
+                        Mehrere Standorte gleichzeitig verwalten
+                    </p>
+                </div>
+                <!-- Toggle Switch - EXTRA GROSSER, SICHTBARER SLIDER -->
+                <div style="position: relative; margin-left: 24px; flex-shrink: 0;">
+                    <label for="multisite-enabled" style="position: relative; display: block; width: 72px; height: 40px; cursor: pointer; margin: 0;">
+                        <input type="checkbox" id="multisite-enabled" onchange="handleMultiSiteToggle()" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;">
+                        <span id="multisite-toggle-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #4b5563; border-radius: 40px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: inset 0 3px 6px rgba(0,0,0,0.4), 0 0 0 3px rgba(75, 85, 99, 0.2); border: 3px solid rgba(75, 85, 99, 0.6); display: block; z-index: 1;">
+                            <span id="multisite-toggle-knob" style="position: absolute; height: 32px; width: 32px; left: 2px; bottom: 2px; background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%); border-radius: 50%; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 3px 10px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.1); display: block; z-index: 2;"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div id="multisite-warning" style="display: none; padding: 14px; background: rgba(59, 130, 246, 0.2); border: 2px solid rgba(59, 130, 246, 0.4); border-radius: 10px; color: #93c5fd; font-size: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">ℹ️</span>
+                <div>
+                    <strong style="color: #60a5fa;">Info:</strong> Die Konfiguration wird automatisch gespeichert. Die Änderung wird beim nächsten Seiten-Reload aktiv.
+                </div>
+            </div>
+        </div>
+        
+        <div id="multisite-config" style="display: none; opacity: 0; transition: opacity 0.3s ease;">
+            <div style="margin-bottom: 16px; padding: 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="color: #60a5fa; font-weight: 600;">Konfigurierte Standorte:</span>
+                    <span id="multisite-sites-count" style="color: #93c5fd; font-weight: 600;">0</span>
+                </div>
+                <div id="multisite-sites-list" style="max-height: 200px; overflow-y: auto;">
+                    <!-- Sites werden hier dynamisch geladen -->
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <p style="color: #94a3b8; font-size: 13px; margin-bottom: 8px;">
+                    ℹ️ Um Standorte hinzuzufügen, bearbeiten Sie <code style="color: #60a5fa;">app/config/ems.yaml</code> 
+                    oder verwenden Sie die Beispiel-Konfiguration: <code style="color: #60a5fa;">app/config/ems_multi_site_example.yaml</code>
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+                <button onclick="saveMultiSiteConfig()" 
+                        style="flex: 1; padding: 12px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s;">
+                    💾 Speichern
+                </button>
+                <button onclick="loadMultiSiteStatus()" 
+                        style="padding: 12px 16px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #60a5fa; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s;">
+                    🔄 Aktualisieren
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grid Tariffs & Other Configurations -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
     <!-- Grid Tariffs -->
     <div class="card">
         <h2>
@@ -712,7 +899,11 @@ async function handleModbusProfileChange() {
 
 async function loadSettings() {
     try {
-        const resp = await fetch('/api/strategies');
+        let url = '/api/strategies';
+        if (currentSiteId !== null) {
+            url += `?site_id=${currentSiteId}`;
+        }
+        const resp = await fetch(url);
         const data = await resp.json();
         
         currentMode = data.mode || 'auto';
@@ -728,8 +919,216 @@ async function loadSettings() {
                 document.getElementById('strategy-select').value = data.current;
             }
         }
+        
+        // Lade AI-Status
+        await loadAIStatus();
     } catch (err) {
         console.error('Error loading settings:', err);
+    }
+}
+
+let isLoadingAIStatus = false; // Flag um Endlosschleife zu verhindern
+
+async function loadAIStatus() {
+    if (isLoadingAIStatus) return; // Verhindere parallele Aufrufe
+    isLoadingAIStatus = true;
+    
+    try {
+        let url = '/api/ai/status';
+        if (currentSiteId !== null) {
+            url += `?site_id=${currentSiteId}`;
+        }
+        const resp = await fetch(url);
+        if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        
+        if (data.enabled !== undefined && !isTogglingAI) {
+            const checkbox = document.getElementById('ai-selection-enabled');
+            if (checkbox && checkbox.checked !== data.enabled) {
+                checkbox.checked = data.enabled;
+                // UI-Status aktualisieren ohne API-Call
+                updateAISelectionUI(data.enabled);
+            }
+        }
+        
+        if (data.is_trained !== undefined) {
+            const statusText = document.getElementById('ai-status-text');
+            const trainingSamples = document.getElementById('ai-training-samples');
+            
+            if (statusText) {
+                if (data.is_trained) {
+                    statusText.textContent = '✅ Trainiert';
+                    statusText.style.color = '#10b981';
+                } else {
+                    statusText.textContent = '⏳ Nicht trainiert';
+                    statusText.style.color = '#fbbf24';
+                }
+            }
+            
+            if (trainingSamples) {
+                trainingSamples.textContent = `${data.training_samples || 0} Samples`;
+            }
+            
+            const aiStatus = document.getElementById('ai-status');
+            const aiActions = document.getElementById('ai-actions');
+            if (aiStatus) aiStatus.style.display = 'block';
+            if (aiActions) aiActions.style.display = 'block';
+        }
+    } catch (err) {
+        console.error('Error loading AI status:', err);
+    } finally {
+        isLoadingAIStatus = false;
+    }
+}
+
+function updateAISelectionUI(enabled) {
+    // Aktualisiere nur die UI, ohne API-Call
+    const aiStatus = document.getElementById('ai-status');
+    const aiActions = document.getElementById('ai-actions');
+    
+    if (enabled) {
+        if (aiStatus) aiStatus.style.display = 'block';
+        if (aiActions) aiActions.style.display = 'block';
+    } else {
+        if (aiStatus) aiStatus.style.display = 'none';
+        if (aiActions) aiActions.style.display = 'none';
+    }
+}
+
+let isTogglingAI = false; // Flag um Endlosschleife zu verhindern
+
+async function toggleAISelection() {
+    if (isTogglingAI) return; // Verhindere parallele Aufrufe
+    isTogglingAI = true;
+    
+    const checkbox = document.getElementById('ai-selection-enabled');
+    if (!checkbox) {
+        isTogglingAI = false;
+        return;
+    }
+    
+    const enabled = checkbox.checked;
+    
+    // Aktualisiere UI sofort
+    updateAISelectionUI(enabled);
+    
+    try {
+        let url = '/api/ai/config';
+        const body = { enabled: enabled };
+        if (currentSiteId !== null) {
+            body.site_id = currentSiteId;
+        }
+        
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        
+        if (!resp.ok) {
+            const errorText = await resp.text();
+            let errorMsg = `HTTP ${resp.status}`;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMsg = errorJson.error || errorMsg;
+            } catch {
+                errorMsg = errorText || errorMsg;
+            }
+            throw new Error(errorMsg);
+        }
+        
+        const contentType = resp.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await resp.text();
+            throw new Error(`Ungültige Antwort vom Server: ${text.substring(0, 100)}`);
+        }
+        
+        const data = await resp.json();
+        
+        if (data.success) {
+            // Lade Status neu (ohne Endlosschleife)
+            await loadAIStatus();
+            console.log('✅ AI-Einstellung gespeichert');
+        } else {
+            console.error('❌ Fehler:', data.error || 'Unbekannter Fehler');
+            checkbox.checked = !enabled;
+            updateAISelectionUI(!enabled);
+        }
+    } catch (err) {
+        // Unterdrücke NetworkError-Logs, wenn es nur ein Verbindungsproblem ist
+        if (err.name === 'TypeError' && err.message.includes('NetworkError')) {
+            console.warn('⚠️ Netzwerkfehler beim Speichern der AI-Einstellung. Bitte versuchen Sie es erneut.');
+        } else {
+            console.error('❌ Fehler beim Ändern der AI-Einstellung:', err.message || err);
+        }
+        checkbox.checked = !enabled;
+        updateAISelectionUI(!enabled);
+    } finally {
+        isTogglingAI = false;
+    }
+}
+
+async function trainAIModel() {
+    if (!confirm('Möchten Sie das AI-Modell jetzt trainieren? Dies kann einige Minuten dauern.')) {
+        return;
+    }
+    
+    try {
+        let url = '/api/ai/train';
+        const body = {};
+        if (currentSiteId !== null) {
+            body.site_id = currentSiteId;
+        }
+        
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        
+        const data = await resp.json();
+        
+        if (data.success) {
+            alert(`✅ Training gestartet!\n\nTrainingsdaten: ${data.training_samples || 0} Samples\nModell wird trainiert...`);
+            await loadAIStatus();
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        console.error('Error training AI model:', err);
+        alert('❌ Fehler beim Training des AI-Modells');
+    }
+}
+
+async function getAIFeatureImportance() {
+    try {
+        let url = '/api/ai/features';
+        if (currentSiteId !== null) {
+            url += `?site_id=${currentSiteId}`;
+        }
+        
+        const resp = await fetch(url);
+        const data = await resp.json();
+        
+        if (data.success && data.features) {
+            const features = Object.entries(data.features)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            
+            let message = '📊 Top 10 Feature-Importance:\n\n';
+            features.forEach(([name, importance], idx) => {
+                message += `${idx + 1}. ${name}: ${(importance * 100).toFixed(2)}%\n`;
+            });
+            
+            alert(message);
+        } else {
+            alert('❌ Feature-Importance nicht verfügbar. Modell muss zuerst trainiert werden.');
+        }
+    } catch (err) {
+        console.error('Error getting feature importance:', err);
+        alert('❌ Fehler beim Laden der Feature-Importance');
     }
 }
 
@@ -751,7 +1150,15 @@ async function setStrategyMode(mode) {
         document.getElementById('strategy-selector').style.display = 'none';
         
         try {
-            const resp = await fetch('/api/strategy/auto', { method: 'POST' });
+            const body = {};
+            if (currentSiteId !== null) {
+                body.site_id = currentSiteId;
+            }
+            const resp = await fetch('/api/strategy/auto', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
             const data = await resp.json();
             
             if (data.success) {
@@ -779,10 +1186,14 @@ async function selectStrategy() {
     const strategy = document.getElementById('strategy-select').value;
     
     try {
+        const body = { strategy: strategy };
+        if (currentSiteId !== null) {
+            body.site_id = currentSiteId;
+        }
         const resp = await fetch('/api/strategy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ strategy: strategy })
+            body: JSON.stringify(body)
         });
         
         const data = await resp.json();
@@ -838,6 +1249,11 @@ function saveMqttConfig() {
             }
         }
     };
+    
+    // Füge site_id hinzu, wenn Multi-Site aktiv
+    if (currentSiteId !== null) {
+        config.site_id = currentSiteId;
+    }
     
     fetch('/api/mqtt/config', {
         method: 'POST',
@@ -963,6 +1379,12 @@ async function testModbusConnection() {
 
 async function saveModbusConfig() {
     const config = collectModbusConfigInput();
+    
+    // Füge site_id hinzu, wenn Multi-Site aktiv
+    if (currentSiteId !== null) {
+        config.site_id = currentSiteId;
+    }
+    
     try {
         const resp = await fetch('/api/modbus/config', {
             method: 'POST',
@@ -988,7 +1410,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    fetch('/api/mqtt/config')
+    let mqttUrl = '/api/mqtt/config';
+    if (currentSiteId !== null) {
+        mqttUrl += `?site_id=${currentSiteId}`;
+    }
+    fetch(mqttUrl)
     .then(response => response.json())
     .then(data => {
         if (data.success && data.config) {
@@ -1020,7 +1446,11 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Error loading MQTT config:', error);
     });
     
-    fetch('/api/modbus/config')
+    let modbusUrl = '/api/modbus/config';
+    if (currentSiteId !== null) {
+        modbusUrl += `?site_id=${currentSiteId}`;
+    }
+    fetch(modbusUrl)
     .then(response => response.json())
     .then(data => {
         if (data.success && data.config) {
@@ -1212,6 +1642,186 @@ async function loadFeedinConfig() {
     }
 }
 
+// Site Selection (Multi-Site)
+let currentSiteId = null;
+
+async function loadSites() {
+    const selector = document.getElementById('site-selector');
+    if (!selector) return; // Nicht im Multi-Site-Modus
+    
+    try {
+        const resp = await fetch('/api/sites');
+        if (!resp.ok) {
+            console.error('API error:', resp.status, resp.statusText);
+            selector.innerHTML = '<option value="">Fehler beim Laden</option>';
+            return;
+        }
+        
+        const data = await resp.json();
+        console.log('Sites data:', data); // Debug
+        
+        // Prüfe ob sites vorhanden sind (auch wenn success nicht gesetzt ist)
+        if (data.sites && data.sites.length > 0) {
+            selector.innerHTML = '<option value="">Alle Standorte (Global)</option>';
+            data.sites.forEach(site => {
+                const option = document.createElement('option');
+                option.value = site.id;
+                option.textContent = `${site.name || `Standort ${site.id}`} (ID: ${site.id})`;
+                selector.appendChild(option);
+            });
+            
+            // Setze default site oder ersten Standort
+            if (data.default_site_id) {
+                selector.value = data.default_site_id;
+            } else if (data.sites && data.sites.length > 0) {
+                // Wenn kein default, nimm ersten Standort
+                selector.value = data.sites[0].id;
+            }
+            // Trigger change to load configs and update indicators
+            changeSite();
+        } else {
+            selector.innerHTML = '<option value="">Keine Standorte gefunden</option>';
+            // Auch bei "Global" die Indikatoren anzeigen
+            changeSite();
+        }
+    } catch (err) {
+        console.error('Error loading sites:', err);
+        selector.innerHTML = '<option value="">Fehler beim Laden</option>';
+    }
+}
+
+function changeSite() {
+    const selector = document.getElementById('site-selector');
+    if (!selector) return;
+    
+    currentSiteId = selector.value ? parseInt(selector.value) : null;
+    
+    const siteInfo = document.getElementById('site-info');
+    const siteName = document.getElementById('selected-site-name');
+    const mqttIndicator = document.getElementById('mqtt-site-indicator');
+    const mqttSiteName = document.getElementById('mqtt-site-name');
+    const modbusIndicator = document.getElementById('modbus-site-indicator');
+    const modbusSiteName = document.getElementById('modbus-site-name');
+    
+    let displayName = 'Global';
+    if (currentSiteId) {
+        const selectedOption = selector.options[selector.selectedIndex];
+        displayName = selectedOption.textContent;
+        siteName.textContent = displayName;
+        siteInfo.style.display = 'block';
+    } else {
+        siteName.textContent = displayName;
+        siteInfo.style.display = 'block';
+    }
+    
+    // Update MQTT and Modbus indicators
+    if (mqttIndicator && mqttSiteName) {
+        mqttSiteName.textContent = displayName;
+        mqttIndicator.style.display = 'block';
+    }
+    if (modbusIndicator && modbusSiteName) {
+        modbusSiteName.textContent = displayName;
+        modbusIndicator.style.display = 'block';
+    }
+    
+    // Update BESS site indicator
+    const bessSiteNameEl = document.getElementById('bess-site-name');
+    const bessSiteIndicator = document.getElementById('bess-site-indicator');
+    if (bessSiteNameEl) {
+        bessSiteNameEl.textContent = displayName;
+    }
+    if (bessSiteIndicator && currentSiteId) {
+        bessSiteIndicator.style.display = 'block';
+    } else if (bessSiteIndicator) {
+        bessSiteIndicator.style.display = 'none';
+    }
+
+    // Lade alle Configs für ausgewählten Standort neu
+    loadSettings();
+    loadFeedinConfig();
+    loadGridConfig();
+    loadGridTariffsConfig();
+    loadBessConfig();
+    
+    // Lade MQTT und Modbus Configs neu
+    let mqttUrl = '/api/mqtt/config';
+    if (currentSiteId !== null) {
+        mqttUrl += `?site_id=${currentSiteId}`;
+    }
+    fetch(mqttUrl)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.config) {
+            const config = data.config;
+            document.getElementById('mqtt-enabled').checked = config.enabled || false;
+            document.getElementById('mqtt-host').value = config.broker_host || 'localhost';
+            document.getElementById('mqtt-port').value = config.broker_port || 1883;
+            document.getElementById('mqtt-username').value = config.username || '';
+            document.getElementById('mqtt-password').value = config.password || '';
+            document.getElementById('mqtt-client-id').value = config.client_id || 'phoenyra_ems';
+            if (config.topics) {
+                if (config.topics.publish) {
+                    document.getElementById('mqtt-topic-publish-status').value = config.topics.publish.status || 'ems/status';
+                    document.getElementById('mqtt-topic-publish-optimization').value = config.topics.publish.optimization || 'ems/optimization';
+                    document.getElementById('mqtt-topic-publish-alerts').value = config.topics.publish.alerts || 'ems/alerts';
+                    document.getElementById('mqtt-topic-publish-bess').value = config.topics.publish.bess || 'bess/data';
+                }
+                if (config.topics.subscribe) {
+                    document.getElementById('mqtt-topic-subscribe-commands').value = config.topics.subscribe.commands || 'ems/commands';
+                    document.getElementById('mqtt-topic-subscribe-setpoints').value = config.topics.subscribe.setpoints || 'ems/setpoints';
+                    document.getElementById('mqtt-topic-subscribe-strategy').value = config.topics.subscribe.strategy || 'ems/strategy_override';
+                    document.getElementById('mqtt-topic-subscribe-config').value = config.topics.subscribe.config || 'ems/config';
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error loading MQTT config:', error);
+    });
+    
+    let modbusUrl = '/api/modbus/config';
+    if (currentSiteId !== null) {
+        modbusUrl += `?site_id=${currentSiteId}`;
+    }
+    fetch(modbusUrl)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.config) {
+            const config = data.config;
+            modbusProfileSummaries = data.profiles || {};
+            const profileDetails = data.profile || null;
+            if (config.profile && profileDetails) {
+                modbusProfileDetailsCache[config.profile] = profileDetails;
+            }
+            modbusSelectedProfile = config.profile || '';
+            modbusStatusCodes = config.status_codes || {};
+            const baseRegisters = profileDetails && profileDetails.registers ? profileDetails.registers : {};
+            const userRegisters = config.registers || {};
+            modbusRegisterDefinitions = mergeRegisterDefinitions(baseRegisters, userRegisters);
+            
+            // Update UI
+            document.getElementById('modbus-enabled').checked = config.enabled || false;
+            document.getElementById('modbus-type').value = config.connection_type || 'tcp';
+            document.getElementById('modbus-host').value = config.host || 'localhost';
+            document.getElementById('modbus-port').value = config.port || 502;
+            document.getElementById('modbus-slave-id').value = config.slave_id || 1;
+            document.getElementById('modbus-retries').value = config.retries || 3;
+            document.getElementById('modbus-poll-interval').value = config.poll_interval_s || 2.0;
+            
+            if (config.profile) {
+                document.getElementById('modbus-profile-select').value = config.profile;
+            }
+            
+            toggleModbusConfig();
+            toggleModbusType();
+            buildModbusRegisterTable();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading Modbus config:', error);
+    });
+}
+
 async function saveFeedinConfig() {
     const config = {
         enabled: document.getElementById('feedin-enabled').checked,
@@ -1239,6 +1849,11 @@ async function saveFeedinConfig() {
         });
     }
     
+    // Füge site_id hinzu, wenn Multi-Site aktiv
+    if (currentSiteId !== null) {
+        config.site_id = currentSiteId;
+    }
+    
     try {
         const resp = await fetch('/api/config/feedin_limitation', {
             method: 'POST',
@@ -1258,7 +1873,11 @@ async function saveFeedinConfig() {
 
 async function loadGridConfig() {
     try {
-        const resp = await fetch('/api/config/grid_connection');
+        let url = '/api/config/grid_connection';
+        if (currentSiteId !== null) {
+            url += `?site_id=${currentSiteId}`;
+        }
+        const resp = await fetch(url);
         const data = await resp.json();
         if (data.success && data.config) {
             const cfg = data.config;
@@ -1278,6 +1897,11 @@ async function saveGridConfig() {
         }
     };
     
+    // Füge site_id hinzu, wenn Multi-Site aktiv
+    if (currentSiteId !== null) {
+        config.site_id = currentSiteId;
+    }
+    
     try {
         const resp = await fetch('/api/config/grid_connection', {
             method: 'POST',
@@ -1292,6 +1916,78 @@ async function saveGridConfig() {
         }
     } catch (err) {
         alert('❌ Fehler beim Speichern: ' + err.message);
+    }
+}
+
+// BESS Configuration Functions
+async function loadBessConfig() {
+    try {
+        let url = '/api/config/bess';
+        if (currentSiteId !== null) {
+            url += `?site_id=${currentSiteId}`;
+        }
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data.success && data.config) {
+            const cfg = data.config;
+            document.getElementById('bess-energy-capacity').value = cfg.energy_capacity_kwh || 200.0;
+            document.getElementById('bess-power-charge-max').value = cfg.power_charge_max_kw || 100.0;
+            document.getElementById('bess-power-discharge-max').value = cfg.power_discharge_max_kw || 100.0;
+            document.getElementById('bess-soc-min').value = cfg.soc_min_percent || 10.0;
+            document.getElementById('bess-soc-max').value = cfg.soc_max_percent || 90.0;
+            document.getElementById('bess-efficiency-charge').value = (cfg.efficiency_charge || 0.95) * 100;
+            document.getElementById('bess-efficiency-discharge').value = (cfg.efficiency_discharge || 0.95) * 100;
+        }
+    } catch (err) {
+        console.error('Error loading BESS config:', err);
+    }
+}
+
+async function saveBessConfig() {
+    const config = {
+        energy_capacity_kwh: parseFloat(document.getElementById('bess-energy-capacity').value) || 200.0,
+        power_charge_max_kw: parseFloat(document.getElementById('bess-power-charge-max').value) || 100.0,
+        power_discharge_max_kw: parseFloat(document.getElementById('bess-power-discharge-max').value) || 100.0,
+        soc_min_percent: parseFloat(document.getElementById('bess-soc-min').value) || 10.0,
+        soc_max_percent: parseFloat(document.getElementById('bess-soc-max').value) || 90.0,
+        efficiency_charge: parseFloat(document.getElementById('bess-efficiency-charge').value) / 100 || 0.95,
+        efficiency_discharge: parseFloat(document.getElementById('bess-efficiency-discharge').value) / 100 || 0.95
+    };
+    
+    // Füge site_id hinzu, wenn Multi-Site aktiv
+    if (currentSiteId !== null) {
+        config.site_id = currentSiteId;
+    }
+    
+    const statusMsg = document.getElementById('bess-status-message');
+    statusMsg.style.display = 'block';
+    statusMsg.style.background = 'rgba(59, 130, 246, 0.1)';
+    statusMsg.style.color = '#93c5fd';
+    statusMsg.textContent = 'Speichere BESS-Parameter...';
+    
+    try {
+        const resp = await fetch('/api/config/bess', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        const data = await resp.json();
+        if (data.success) {
+            statusMsg.style.background = 'rgba(16, 185, 129, 0.1)';
+            statusMsg.style.color = '#6ee7b7';
+            statusMsg.textContent = '✅ BESS-Parameter erfolgreich gespeichert!';
+            setTimeout(() => {
+                statusMsg.style.display = 'none';
+            }, 3000);
+        } else {
+            statusMsg.style.background = 'rgba(239, 68, 68, 0.1)';
+            statusMsg.style.color = '#fca5a5';
+            statusMsg.textContent = '❌ Fehler: ' + (data.error || 'Unbekannter Fehler');
+        }
+    } catch (err) {
+        statusMsg.style.background = 'rgba(239, 68, 68, 0.1)';
+        statusMsg.style.color = '#fca5a5';
+        statusMsg.textContent = '❌ Fehler beim Speichern: ' + err.message;
     }
 }
 
@@ -1394,7 +2090,11 @@ function addGridTariffWindow() {
 
 async function loadGridTariffsConfig() {
     try {
-        const resp = await fetch('/api/config/grid_tariffs');
+        let url = '/api/config/grid_tariffs';
+        if (currentSiteId !== null) {
+            url += `?site_id=${currentSiteId}`;
+        }
+        const resp = await fetch(url);
         const data = await resp.json();
         if (data.success && data.config) {
             const cfg = data.config;
@@ -1516,6 +2216,11 @@ async function saveGridTariffsConfig() {
         high_load_windows: windows
     };
     
+    // Füge site_id hinzu, wenn Multi-Site aktiv
+    if (currentSiteId !== null) {
+        config.site_id = currentSiteId;
+    }
+    
     try {
         const resp = await fetch('/api/config/grid_tariffs', {
             method: 'POST',
@@ -1553,6 +2258,274 @@ async function saveGridTariffsConfig() {
         alert('❌ Fehler beim Speichern: ' + err.message);
     }
 }
+
+// Multi-Site Functions
+let multiSiteEnabled = false;
+let sitesList = [];
+
+async function loadMultiSiteStatus() {
+    try {
+        const resp = await fetch('/api/sites');
+        if (!resp.ok) {
+            console.warn(`API returned ${resp.status}: ${resp.statusText}`);
+            // Fallback: Setze Single-Site-Modus
+            multiSiteEnabled = false;
+            sitesList = [];
+            const checkbox = document.getElementById('multisite-enabled');
+            if (checkbox) {
+                checkbox.checked = false;
+                toggleMultiSiteConfig();
+            }
+            return;
+        }
+        
+        const contentType = resp.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Response is not JSON:', contentType);
+            const text = await resp.text();
+            console.error('Response body:', text.substring(0, 200));
+            return;
+        }
+        
+        const data = await resp.json();
+        multiSiteEnabled = data.multi_site || false;
+        sitesList = data.sites || [];
+        
+        const checkbox = document.getElementById('multisite-enabled');
+        if (checkbox) {
+            checkbox.checked = multiSiteEnabled;
+            toggleMultiSiteConfig(); // This will update the visual state
+        }
+        
+        // Update Navigation Button visibility
+        updateNavSitesVisibility(multiSiteEnabled);
+        
+        // Update sites count
+        const countEl = document.getElementById('multisite-sites-count');
+        if (countEl) {
+            countEl.textContent = sitesList.length;
+        }
+        
+        // Update sites list
+        updateSitesList();
+    } catch (err) {
+        console.error('Error loading multi-site status:', err);
+        // Fallback: Setze Single-Site-Modus
+        multiSiteEnabled = false;
+        sitesList = [];
+        const checkbox = document.getElementById('multisite-enabled');
+        if (checkbox) {
+            checkbox.checked = false;
+            toggleMultiSiteConfig();
+        }
+    }
+}
+
+function toggleMultiSiteConfig() {
+    const checkbox = document.getElementById('multisite-enabled');
+    if (!checkbox) return;
+    
+    const enabled = checkbox.checked;
+    const config = document.getElementById('multisite-config');
+    const warning = document.getElementById('multisite-warning');
+    const slider = document.getElementById('multisite-toggle-slider');
+    const knob = document.getElementById('multisite-toggle-knob');
+    
+    // Update toggle visual state
+    if (enabled) {
+        if (slider) {
+            slider.style.backgroundColor = '#3b82f6';
+            slider.style.borderColor = '#3b82f6';
+            slider.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.2), 0 0 0 3px rgba(59, 130, 246, 0.3)';
+        }
+        if (knob) {
+            knob.style.transform = 'translateX(28px)';
+            knob.style.backgroundColor = '#ffffff';
+        }
+        if (config) {
+            config.style.display = 'block';
+            setTimeout(() => { if (config) config.style.opacity = '1'; }, 10);
+        }
+        if (warning) {
+            warning.style.display = 'block';
+        }
+    } else {
+        if (slider) {
+            slider.style.backgroundColor = '#4b5563';
+            slider.style.borderColor = 'rgba(75, 85, 99, 0.5)';
+            slider.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.3)';
+        }
+        if (knob) {
+            knob.style.transform = 'translateX(0)';
+            knob.style.backgroundColor = '#ffffff';
+        }
+        if (config) {
+            if (config.style.opacity !== '0') {
+                config.style.opacity = '0';
+            }
+            setTimeout(() => { if (config) config.style.display = 'none'; }, 300);
+        }
+        if (warning) {
+            warning.style.display = 'none';
+        }
+    }
+}
+
+async function handleMultiSiteToggle() {
+    const checkbox = document.getElementById('multisite-enabled');
+    if (!checkbox) return;
+    
+    const enabled = checkbox.checked;
+    
+    // Zeige UI sofort an/aus
+    toggleMultiSiteConfig();
+    
+    // Update Navigation Button visibility
+    updateNavSitesVisibility(enabled);
+    
+    // Speichere automatisch
+    try {
+        await saveMultiSiteConfig();
+    } catch (err) {
+        console.error('Error saving multi-site config:', err);
+        // Reset checkbox bei Fehler
+        checkbox.checked = !enabled;
+        toggleMultiSiteConfig();
+        updateNavSitesVisibility(!enabled);
+    }
+}
+
+function updateNavSitesVisibility(enabled) {
+    const navSites = document.getElementById('nav-sites');
+    if (!navSites) return;
+    
+    if (enabled) {
+        navSites.style.display = 'flex';
+        navSites.href = '/sites';
+        navSites.classList.remove('nav-link-disabled');
+    } else {
+        navSites.style.display = 'none';
+        navSites.href = '#';
+    }
+}
+
+function updateSitesList() {
+    const container = document.getElementById('multisite-sites-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (sitesList.length === 0) {
+        container.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8;">Keine Standorte konfiguriert</div>';
+        return;
+    }
+    
+    sitesList.forEach(site => {
+        const siteDiv = document.createElement('div');
+        siteDiv.style.padding = '12px';
+        siteDiv.style.background = 'rgba(59, 130, 246, 0.1)';
+        siteDiv.style.border = '1px solid rgba(59, 130, 246, 0.3)';
+        siteDiv.style.borderRadius = '8px';
+        siteDiv.style.marginBottom = '8px';
+        siteDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 600; color: #fff; margin-bottom: 4px;">${site.name || `Site ${site.id}`}</div>
+                    <div style="font-size: 12px; color: #94a3b8;">
+                        ${site.location?.city || 'Keine Ortsangabe'} | 
+                        BESS: ${site.config?.bess?.energy_capacity_kw || 'N/A'} kWh
+                    </div>
+                </div>
+                <div style="color: #60a5fa; font-size: 12px;">
+                    ID: ${site.id}
+                </div>
+            </div>
+        `;
+        container.appendChild(siteDiv);
+    });
+}
+
+async function saveMultiSiteConfig() {
+    const enabled = document.getElementById('multisite-enabled').checked;
+    
+    // Zeige kurze Bestätigung ohne Dialog
+    const statusMsg = document.createElement('div');
+    statusMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 12px 20px; background: #3b82f6; color: white; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 14px; font-weight: 600;';
+    statusMsg.textContent = enabled ? '🔄 Multi-Site wird aktiviert...' : '🔄 Multi-Site wird deaktiviert...';
+    document.body.appendChild(statusMsg);
+    
+    try {
+        const resp = await fetch('/api/config/multisite', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ enabled: enabled })
+        });
+        
+        if (!resp.ok) {
+            const errorText = await resp.text();
+            console.error(`API returned ${resp.status}: ${errorText}`);
+            throw new Error(`Server-Fehler: ${resp.status} ${resp.statusText}`);
+        }
+        
+        const contentType = resp.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await resp.text();
+            console.error('Response is not JSON:', contentType, text.substring(0, 200));
+            throw new Error('Ungültige Antwort vom Server');
+        }
+        
+        const data = await resp.json();
+        
+        if (data.success) {
+            statusMsg.style.background = '#10b981';
+            statusMsg.textContent = `✅ ${enabled ? 'Multi-Site aktiviert' : 'Multi-Site deaktiviert'}`;
+            
+            // Entferne Nachricht nach 2 Sekunden
+            setTimeout(() => {
+                statusMsg.style.opacity = '0';
+                statusMsg.style.transition = 'opacity 0.3s';
+                setTimeout(() => statusMsg.remove(), 300);
+            }, 2000);
+            
+            // Lade Status neu
+            await loadMultiSiteStatus();
+        } else {
+            console.error('Multi-Site config save failed:', data);
+            statusMsg.style.background = '#ef4444';
+            statusMsg.textContent = '❌ Fehler: ' + (data.error || 'Unbekannter Fehler');
+            setTimeout(() => statusMsg.remove(), 4000);
+            
+            // Reset checkbox bei Fehler
+            const checkbox = document.getElementById('multisite-enabled');
+            if (checkbox) {
+                checkbox.checked = !enabled;
+                toggleMultiSiteConfig();
+            }
+        }
+    } catch (err) {
+        console.error('Error saving multi-site config:', err);
+        statusMsg.style.background = '#ef4444';
+        statusMsg.textContent = '❌ Fehler: ' + (err.message || 'Verbindungsfehler');
+        setTimeout(() => statusMsg.remove(), 4000);
+        
+        // Reset checkbox bei Fehler
+        const checkbox = document.getElementById('multisite-enabled');
+        if (checkbox) {
+            checkbox.checked = !enabled;
+            toggleMultiSiteConfig();
+        }
+    }
+}
+
+// Load on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadMultiSiteStatus();
+    loadSites(); // Lade Standorte für Multi-Site-Auswahl
+    loadFeedinConfig();
+    loadGridConfig();
+    loadGridTariffsConfig();
+    loadAIStatus(); // Lade AI-Status
+});
 </script>
 
 {% endblock %}

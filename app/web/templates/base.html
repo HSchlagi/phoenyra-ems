@@ -52,6 +52,16 @@
                         </svg>
                         Einstellungen
                     </a>
+                    {% if multi_site is defined and multi_site %}
+                    <a href="{{ url_for('web.sites') }}" class="nav-link {{ 'active' if request.path == '/sites' else '' }}" id="nav-sites">
+                    {% else %}
+                    <a href="#" class="nav-link" id="nav-sites" style="display: none;">
+                    {% endif %}
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"></path>
+                        </svg>
+                        Standorte
+                    </a>
                 </div>
             </div>
             <div class="nav-user">
@@ -375,5 +385,49 @@
             </div>
         </div>
     </div>
+    
+    <script>
+    // Check if multi-site is enabled and show/hide navigation
+    async function checkMultiSite() {
+        try {
+            const resp = await fetch('/api/sites');
+            const data = await resp.json();
+            const navSites = document.getElementById('nav-sites');
+            if (navSites) {
+                if (data.multi_site) {
+                    navSites.style.display = 'flex';
+                    navSites.href = '/sites';
+                } else {
+                    navSites.style.display = 'none';
+                    navSites.href = '#';
+                }
+            }
+        } catch (err) {
+            console.error('Error checking multi-site:', err);
+            // Fallback: Hide if error
+            const navSites = document.getElementById('nav-sites');
+            if (navSites) {
+                navSites.style.display = 'none';
+            }
+        }
+    }
+    
+    // Run on page load
+    checkMultiSite();
+    
+    // Expose function globally for settings page
+    window.updateNavSitesVisibility = function(enabled) {
+        const navSites = document.getElementById('nav-sites');
+        if (!navSites) return;
+        
+        if (enabled) {
+            navSites.style.display = 'flex';
+            navSites.href = '/sites';
+        } else {
+            navSites.style.display = 'none';
+            navSites.href = '#';
+        }
+    };
+    </script>
 </body>
 </html>

@@ -65,8 +65,10 @@ phoenyra-EMS/
 - ✅ **4 Strategien:** Arbitrage, Peak Shaving, Self-Consumption, Load Balancing
 - ✅ **Linear Programming:** Mathematisch optimale Lösungen mit CVXPY
 - ✅ **Adaptive Strategiewahl:** Automatische Auswahl basierend auf Situation
+- ✅ **KI-basierte Strategie-Auswahl:** ⭐ NEU - Machine Learning (Random Forest) für intelligente Strategieauswahl basierend auf Marktdaten, SoC, SoH, Temperatur und Prognosen
 - ✅ **Prophet ML:** Facebook Prophet für präzise Zeitreihen-Prognosen
 - ✅ **Wetterbasiert:** OpenWeatherMap für PV-Prognosen
+- ✅ **Market Data Service:** Preis-Trends, Volatilität und Marktanalyse für KI-Entscheidungen
 
 ### **📊 Dashboard & Analytics**
 - ✅ **Live-Dashboard:** Echtzeit-Visualisierung mit Chart.js
@@ -261,6 +263,10 @@ GET  /api/forecast           # Prognosen (Preise, PV, Last)
 GET  /api/strategies         # Verfügbare Strategien
 POST /api/strategy           # Strategie manuell setzen
 POST /api/strategy/auto      # Auto-Modus aktivieren
+GET  /api/ai/status          # KI-Strategie-Auswahl Status (Parameter: site_id)
+POST /api/ai/config          # KI-Strategie-Auswahl aktivieren/deaktivieren (Parameter: site_id)
+POST /api/ai/train           # KI-Modell manuell trainieren (Parameter: site_id)
+GET  /api/ai/features        # Feature-Importance des KI-Modells (Parameter: site_id)
 ```
 
 ### **Analytics & History** ⭐ NEU (Phase 2)
@@ -295,10 +301,23 @@ GET  /monitoring                    # Monitoring & Telemetrie
 GET  /analytics                     # Analytics & Performance
 GET  /forecasts                     # Prognosen & Marktdaten
 GET  /settings                      # System-Einstellungen
+GET  /sites                         # Multi-Site Übersicht (nur bei Multi-Site aktiviert)
 GET  /users                         # Benutzerverwaltung (Admin)
 GET  /help                          # Hilfe & Anleitungen
 GET  /login                         # Anmeldung
 GET  /register                      # Registrierung
+```
+
+### **Multi-Site Management** ⭐ NEU
+```bash
+GET  /api/sites                     # Liste aller Standorte
+POST /api/sites                     # Neuen Standort erstellen
+GET  /api/sites/<id>                # Standort-Details
+PUT  /api/sites/<id>                # Standort aktualisieren
+DELETE /api/sites/<id>              # Standort löschen
+POST /api/sites/<id>/duplicate      # Standort duplizieren
+GET  /api/sites/<id>/state          # Standort-spezifischer Zustand
+GET  /api/sites/aggregated          # Aggregierte Daten aller Standorte
 ```
 
 ## 🏗️ **Architektur**
@@ -342,13 +361,30 @@ GET  /register                      # Registrierung
 - ✅ **Load Balancing Strategie:** Glättung von Lastschwankungen
 - ✅ **Analytics Dashboard:** Visualisierung historischer Daten
 - ✅ **4 Strategien:** Arbitrage, Peak Shaving, Self-Consumption, Load Balancing
+- ✅ **Dynamische Netzentgelte:** Zeitvariable Netzentgelte (NE3-NE7, Hochlastfenster) mit Integration in Optimierung
+
+### ✅ **Phase 2.5: Multi-Site/Multi-BESS** (Abgeschlossen) ⭐ NEU
+- ✅ **MultiSiteManager:** Zentrale Verwaltung mehrerer Standorte
+- ✅ **Standort-spezifische Konfigurationen:** MQTT, Modbus, BESS-Parameter, Strategien, Einspeisebegrenzung, Netzanschluss, Netzentgelte
+- ✅ **Standort-Verwaltung:** CRUD-Operationen für Standorte
+- ✅ **Standort-Duplikation:** Kopieren bestehender Standort-Konfigurationen
+- ✅ **Aggregierte Daten:** Konsolidierte Ansicht aller Standorte
+- ✅ **UI-Integration:** Standort-Auswahl in Settings, dedizierte Standorte-Seite
+
+### ✅ **Phase 3.1: KI-basierte Strategie-Auswahl** (Abgeschlossen) ⭐ NEU
+- ✅ **AIStrategySelector:** Random Forest Classifier für intelligente Strategieauswahl
+- ✅ **Market Data Service:** Preis-Trends, Volatilität und Marktanalyse
+- ✅ **Feature-Extraktion:** SoC, SoH, Temperatur, Marktdaten, Prognosen, Zeitfeatures
+- ✅ **Modell-Training:** Automatisches Training mit historischen Optimierungsdaten
+- ✅ **Feature-Importance:** Visualisierung der wichtigsten Entscheidungsfaktoren
+- ✅ **UI-Integration:** Konfiguration und Monitoring in Settings
 
 ### 🔮 **Phase 3: Advanced** (Geplant)
-- Multi-Asset Management
+- Erweiterte ML-Prognosen
 - VPP Integration
 - Grid Services
 - Blockchain Integration
-- Advanced Analytics Dashboard
+- IoT-Sensor-Integration
 
 ## 📈 **Erwartete Vorteile**
 
@@ -366,11 +402,12 @@ GET  /register                      # Registrierung
 
 ## 🔮 **Zukünftige Erweiterungen**
 
-- Machine Learning für Prognosen
-- VPP-Integration
-- Blockchain-Integration
-- IoT-Sensor-Integration
-- KI-basierte Strategie-Auswahl
+- Erweiterte ML-Prognosen (mehr Datenquellen, bessere Genauigkeit)
+- VPP-Integration (Virtuelles Kraftwerk Anbindung)
+- Blockchain-Integration (Transparenz und Nachverfolgbarkeit)
+- IoT-Sensor-Integration (Zusätzliche Sensoren für erweiterte Überwachung)
+
+📖 **Detaillierte Vorschläge:** Siehe [ZUKUNFTIGE_ERWEITERUNGEN.md](ZUKUNFTIGE_ERWEITERUNGEN.md)
 
 ## 📞 **Support**
 

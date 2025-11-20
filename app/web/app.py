@@ -3,10 +3,13 @@ from .routes import bp
 import yaml, os
 from pathlib import Path
 from ems.controller import EmsCore
+from ems.multi_site_manager import MultiSiteManager
 from services.database.user_db import UserDatabase
 
 def create_app():
     app=Flask(__name__); app.secret_key=os.environ.get('FLASK_SECRET','dev')
+    # Template-Reloading aktivieren (auch im Production-Modus für Development)
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
     @app.after_request
     def csp(r): 
         r.headers['Content-Security-Policy']="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.plot.ly; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self';"
@@ -46,6 +49,34 @@ def create_app():
         # Konvertiere DB-Users zu YAML-Format für Kompatibilität
         app.users = [{'username': u['username'], 'password': '***', 'role': u['role']} for u in db_users]
     
-    app.ems=EmsCore(cfg); app.ems.start()
+    # Multi-Site oder Single-Site Modus?
+    sites_config = cfg.get('sites', {})
+    if sites_config and 'sites' in sites_config and sites_config.get('sites'):
+        # Multi-Site-Modus
+        try:
+            app.ems = MultiSiteManager(sites_config)
+            app.multi_site = True
+            print(f"✅ Multi-Site-Modus aktiviert: {len(app.ems.sites)} Standorte")
+        except Exception as e:
+            print(f"❌ Fehler beim Initialisieren von Multi-Site: {e}")
+            print("⚠️ Fallback auf Single-Site-Modus")
+            app.ems = EmsCore(cfg)
+            app.ems.start()
+            app.multi_site = False
+    else:
+        # Single-Site-Modus (Rückwärtskompatibilität)
+        app.ems = EmsCore(cfg)
+        app.ems.start()
+        app.multi_site = False
+        print("✅ Single-Site-Modus aktiviert")
+    
+    # Context-Processor: current_app und multi_site für Templates verfügbar machen
+    @app.context_processor
+    def inject_current_app():
+        return {
+            'current_app': app,
+            'multi_site': app.multi_site if hasattr(app, 'multi_site') else False
+        }
+    
     app.register_blueprint(bp); return app
 app=create_app()

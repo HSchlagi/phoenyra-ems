@@ -1,0 +1,600 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Header -->
+<div style="margin-bottom: 24px;">
+    <h1>Multi-Site Übersicht</h1>
+    <p class="subtitle">Verwaltung und Monitoring mehrerer Standorte</p>
+</div>
+
+<!-- Aggregated KPIs -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 4px;">Gesamt BESS-Leistung</p>
+                <p id="kpi-total-p-bess" style="color: #fff; font-size: 24px; font-weight: 700;">-- kW</p>
+            </div>
+            <div style="font-size: 32px;">⚡</div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 4px;">Durchschnitts-SoC</p>
+                <p id="kpi-avg-soc" style="color: #fff; font-size: 24px; font-weight: 700;">-- %</p>
+            </div>
+            <div style="font-size: 32px;">🔋</div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 4px;">Gesamt PV-Leistung</p>
+                <p id="kpi-total-p-pv" style="color: #fff; font-size: 24px; font-weight: 700;">-- kW</p>
+            </div>
+            <div style="font-size: 32px;">☀️</div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 4px;">Anzahl Standorte</p>
+                <p id="kpi-site-count" style="color: #fff; font-size: 24px; font-weight: 700;">--</p>
+            </div>
+            <div style="font-size: 32px;">🏢</div>
+        </div>
+    </div>
+</div>
+
+<!-- Sites List -->
+<div class="card">
+    <div style="display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 20px; width: 100% !important; position: relative; overflow: visible !important;">
+        <h2 style="margin: 0; flex: 1; min-width: 0;">
+            <svg class="text-indigo-500" fill="currentColor" viewBox="0 0 20 20" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;">
+                <path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"></path>
+            </svg>
+            Standorte
+        </h2>
+        <button id="add-site-button" onclick="showAddSiteModal()" 
+                style="padding: 10px 20px; background: #3b82f6 !important; border: none !important; border-radius: 8px; color: white !important; font-weight: 600; font-size: 14px; cursor: pointer; display: flex !important; align-items: center; gap: 8px; transition: all 0.2s; flex-shrink: 0; visibility: visible !important; opacity: 1 !important; position: relative; z-index: 10;"
+                onmouseover="this.style.background='#2563eb'"
+                onmouseout="this.style.background='#3b82f6'">
+            <span>➕</span>
+            <span>Standort hinzufügen</span>
+        </button>
+    </div>
+    
+    <div id="sites-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 20px;">
+        <!-- Sites werden hier dynamisch geladen -->
+    </div>
+</div>
+
+<!-- Add Site Modal -->
+<div id="add-site-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: #1e293b; border: 2px solid #475569; border-radius: 12px; padding: 24px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="color: #fff; font-size: 20px; font-weight: 700; margin: 0;">Neuen Standort hinzufügen</h2>
+            <button onclick="closeAddSiteModal()" 
+                    style="background: transparent; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px;"
+                    onmouseover="this.style.background='rgba(148, 163, 184, 0.2)'"
+                    onmouseout="this.style.background='transparent'">
+                ✕
+            </button>
+        </div>
+        
+        <form id="add-site-form" onsubmit="saveNewSite(event)">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; color: #cbd5e1; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                    Standort-Name *
+                </label>
+                <input type="text" id="site-name" required
+                       placeholder="z.B. Standort Wien"
+                       style="width: 100%; padding: 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #fff; font-size: 14px;">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; color: #cbd5e1; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                        Stadt/Ort
+                    </label>
+                    <input type="text" id="site-city"
+                           placeholder="z.B. Wien"
+                           style="width: 100%; padding: 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #fff; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; color: #cbd5e1; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                        Standort-ID (optional)
+                    </label>
+                    <input type="number" id="site-id" min="1"
+                           placeholder="Auto-generiert"
+                           style="width: 100%; padding: 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #fff; font-size: 14px;">
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; color: #cbd5e1; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                        Breitengrad (Latitude)
+                    </label>
+                    <input type="number" id="site-latitude" step="0.0001"
+                           placeholder="48.2082"
+                           style="width: 100%; padding: 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #fff; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; color: #cbd5e1; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                        Längengrad (Longitude)
+                    </label>
+                    <input type="number" id="site-longitude" step="0.0001"
+                           placeholder="16.3738"
+                           style="width: 100%; padding: 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #fff; font-size: 14px;">
+                </div>
+            </div>
+            
+            <div style="padding: 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; margin-bottom: 20px;">
+                <p style="color: #93c5fd; font-size: 13px; margin: 0;">
+                    💡 <strong>Hinweis:</strong> Der neue Standort wird mit Standard-Konfigurationen erstellt. 
+                    Weitere Einstellungen (BESS, Modbus, MQTT) können anschließend in den Einstellungen vorgenommen werden.
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" onclick="closeAddSiteModal()"
+                        style="padding: 10px 20px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #cbd5e1; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    Abbrechen
+                </button>
+                <button type="submit"
+                        style="padding: 10px 20px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    💾 Standort erstellen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Site Modal -->
+<div id="edit-site-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: #1e293b; border-radius: 12px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); border: 1px solid #475569;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <h2 style="color: #fff; font-size: 20px; font-weight: 700; margin: 0;">Standort bearbeiten</h2>
+            <button onclick="closeEditSiteModal()" 
+                    style="background: transparent; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px;"
+                    onmouseover="this.style.background='rgba(148, 163, 184, 0.2)'"
+                    onmouseout="this.style.background='transparent'">
+                ✕
+            </button>
+        </div>
+        <form id="edit-site-form" onsubmit="saveEditedSite(event)">
+            <input type="hidden" id="edit-site-id">
+            <div style="margin-bottom: 15px;">
+                <label for="edit-site-name" style="display: block; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Standort-Name <span style="color: #ef4444;">*</span></label>
+                <input type="text" id="edit-site-name" required 
+                       style="width: 100%; padding: 10px 12px; background: #0f172a; border: 1px solid #475569; border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="edit-site-city" style="display: block; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Stadt/Ort</label>
+                <input type="text" id="edit-site-city" 
+                       style="width: 100%; padding: 10px 12px; background: #0f172a; border: 1px solid #475569; border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label for="edit-site-latitude" style="display: block; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Breitengrad</label>
+                    <input type="number" step="any" id="edit-site-latitude"
+                           style="width: 100%; padding: 10px 12px; background: #0f172a; border: 1px solid #475569; border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+                <div>
+                    <label for="edit-site-longitude" style="display: block; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px;">Längengrad</label>
+                    <input type="number" step="any" id="edit-site-longitude"
+                           style="width: 100%; padding: 10px 12px; background: #0f172a; border: 1px solid #475569; border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+            </div>
+            <div id="edit-site-status-message" style="margin-bottom: 15px; padding: 10px; border-radius: 6px; font-size: 14px; text-align: center; display: none;"></div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" onclick="closeEditSiteModal()"
+                        style="padding: 10px 20px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #cbd5e1; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    Abbrechen
+                </button>
+                <button type="submit" 
+                        style="padding: 10px 20px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.2s;"
+                        onmouseover="this.style.background='#2563eb'"
+                        onmouseout="this.style.background='#3b82f6'">
+                    💾 Änderungen speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let sitesData = [];
+let aggregatedData = null;
+
+async function loadSites() {
+    try {
+        // Lade Standorte
+        const sitesResp = await fetch('/api/sites');
+        const sitesResult = await sitesResp.json();
+        sitesData = sitesResult.sites || [];
+        
+        // Lade aggregierte Daten (nur für Admins)
+        {% if session.user and session.user.role == 'admin' %}
+        try {
+            const aggResp = await fetch('/api/sites/aggregated');
+            aggregatedData = await aggResp.json();
+            updateAggregatedKPIs();
+        } catch (err) {
+            console.error('Error loading aggregated data:', err);
+        }
+        {% endif %}
+        
+        renderSites();
+    } catch (err) {
+        console.error('Error loading sites:', err);
+        document.getElementById('sites-list').innerHTML = 
+            '<div style="padding: 20px; text-align: center; color: #94a3b8;">Fehler beim Laden der Standorte</div>';
+    }
+}
+
+function updateAggregatedKPIs() {
+    if (!aggregatedData) return;
+    
+    document.getElementById('kpi-total-p-bess').textContent = 
+        (aggregatedData.total_p_bess || 0).toFixed(1) + ' kW';
+    document.getElementById('kpi-avg-soc').textContent = 
+        (aggregatedData.avg_soc || 0).toFixed(1) + ' %';
+    document.getElementById('kpi-total-p-pv').textContent = 
+        (aggregatedData.total_p_pv || 0).toFixed(1) + ' kW';
+    document.getElementById('kpi-site-count').textContent = 
+        aggregatedData.site_count || 0;
+}
+
+function renderSites() {
+    const container = document.getElementById('sites-list');
+    container.innerHTML = '';
+    
+    if (sitesData.length === 0) {
+        container.innerHTML = 
+            '<div style="padding: 20px; text-align: center; color: #94a3b8;">Keine Standorte konfiguriert</div>';
+        return;
+    }
+    
+    sitesData.forEach(site => {
+        const state = site.state || {};
+        const siteDiv = document.createElement('div');
+        siteDiv.style.padding = '20px';
+        siteDiv.style.background = 'rgba(15, 23, 42, 0.5)';
+        siteDiv.style.border = '2px solid rgba(59, 130, 246, 0.3)';
+        siteDiv.style.borderRadius = '12px';
+        siteDiv.style.cursor = 'pointer';
+        siteDiv.style.transition = 'all 0.2s';
+        siteDiv.onmouseenter = () => {
+            siteDiv.style.borderColor = 'rgba(59, 130, 246, 0.6)';
+            siteDiv.style.transform = 'translateY(-2px)';
+        };
+        siteDiv.onmouseleave = () => {
+            siteDiv.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+            siteDiv.style.transform = 'translateY(0)';
+        };
+        // Klick auf Karte = Monitoring öffnen
+        siteDiv.onclick = (e) => {
+            // Ignoriere Klicks auf Buttons
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                return;
+            }
+            sessionStorage.setItem('selectedSiteId', site.id);
+            window.location.href = '/monitoring?site_id=' + site.id;
+        };
+        
+        // Prüfe ob User Admin ist
+        const isAdmin = {% if session.user and session.user.role == 'admin' %}true{% else %}false{% endif %};
+        
+        siteDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; gap: 12px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 0;">
+                    <h3 style="color: #fff; font-size: 18px; font-weight: 700; margin-bottom: 4px; word-wrap: break-word;">
+                        ${site.name || `Site ${site.id}`}
+                    </h3>
+                    <p style="color: #94a3b8; font-size: 12px; word-wrap: break-word;">
+                        ${site.location?.city || 'Keine Ortsangabe'}
+                        ${site.location?.latitude ? `(${site.location.latitude}, ${site.location.longitude})` : ''}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: flex-start;">
+                    <div style="padding: 4px 8px; background: rgba(59, 130, 246, 0.2); border-radius: 6px; color: #60a5fa; font-size: 11px; font-weight: 600; white-space: nowrap;">
+                        ID: ${site.id}
+                    </div>
+                    {% if session.user and session.user.role == 'admin' %}
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <button onclick="event.stopPropagation(); showEditSiteModal(${site.id})" 
+                                style="padding: 4px 10px; background: rgba(234, 179, 8, 0.2); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 6px; color: #fbbf24; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 80px;"
+                                onmouseover="this.style.background='rgba(234, 179, 8, 0.3)'; this.style.borderColor='rgba(234, 179, 8, 0.6)'"
+                                onmouseout="this.style.background='rgba(234, 179, 8, 0.2)'; this.style.borderColor='rgba(234, 179, 8, 0.4)'">
+                            <span>✏️</span>
+                            <span>Bearbeiten</span>
+                        </button>
+                        <button onclick="event.stopPropagation(); duplicateSite(${site.id})" 
+                                style="padding: 4px 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; color: #60a5fa; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 80px;"
+                                onmouseover="this.style.background='rgba(59, 130, 246, 0.3)'; this.style.borderColor='rgba(59, 130, 246, 0.6)'"
+                                onmouseout="this.style.background='rgba(59, 130, 246, 0.2)'; this.style.borderColor='rgba(59, 130, 246, 0.4)'">
+                            <span>📋</span>
+                            <span>Kopieren</span>
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteSite(${site.id}, '${(site.name || `Site ${site.id}`).replace(/'/g, "\\'")}')" 
+                                style="padding: 4px 10px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; color: #f87171; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 80px;"
+                                onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'; this.style.borderColor='rgba(239, 68, 68, 0.6)'"
+                                onmouseout="this.style.background='rgba(239, 68, 68, 0.2)'; this.style.borderColor='rgba(239, 68, 68, 0.4)'">
+                            <span>🗑️</span>
+                            <span>Löschen</span>
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <p style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">SoC</p>
+                    <p style="color: #fff; font-size: 20px; font-weight: 700;">${(state.soc || 0).toFixed(1)}%</p>
+                </div>
+                <div>
+                    <p style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">BESS-Leistung</p>
+                    <p style="color: #fff; font-size: 20px; font-weight: 700;">${(state.p_bess || 0).toFixed(1)} kW</p>
+                </div>
+                <div>
+                    <p style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">PV-Leistung</p>
+                    <p style="color: #fff; font-size: 20px; font-weight: 700;">${(state.p_pv || 0).toFixed(1)} kW</p>
+                </div>
+                <div>
+                    <p style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Last</p>
+                    <p style="color: #fff; font-size: 20px; font-weight: 700;">${(state.p_load || 0).toFixed(1)} kW</p>
+                </div>
+            </div>
+            
+            <div style="padding-top: 12px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #94a3b8; font-size: 12px;">Status:</span>
+                    <span style="color: ${state.alarm ? '#ef4444' : '#10b981'}; font-size: 12px; font-weight: 600;">
+                        ${state.alarm ? '⚠️ Alarm' : '✅ Normal'}
+                    </span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 12px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 6px; text-align: center;">
+                <span style="color: #60a5fa; font-size: 12px; font-weight: 600;">👆 Zum Monitoring →</span>
+            </div>
+        `;
+        
+        container.appendChild(siteDiv);
+    });
+}
+
+// Add Site Modal
+function showAddSiteModal() {
+    document.getElementById('add-site-modal').style.display = 'flex';
+    // Reset form
+    document.getElementById('add-site-form').reset();
+    document.getElementById('site-id').value = '';
+}
+
+function closeAddSiteModal() {
+    document.getElementById('add-site-modal').style.display = 'none';
+}
+
+async function saveNewSite(event) {
+    event.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('site-name').value.trim(),
+        city: document.getElementById('site-city').value.trim() || null,
+        site_id: document.getElementById('site-id').value ? parseInt(document.getElementById('site-id').value) : null,
+        latitude: document.getElementById('site-latitude').value ? parseFloat(document.getElementById('site-latitude').value) : null,
+        longitude: document.getElementById('site-longitude').value ? parseFloat(document.getElementById('site-longitude').value) : null
+    };
+    
+    if (!formData.name) {
+        alert('Bitte geben Sie einen Standort-Namen ein.');
+        return;
+    }
+    
+    try {
+        const resp = await fetch('/api/sites', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await resp.json();
+        
+        if (result.success) {
+            closeAddSiteModal();
+            alert('Standort erfolgreich erstellt! Bitte starten Sie den Container neu, damit die Änderungen wirksam werden.');
+            loadSites(); // Reload sites list
+        } else {
+            alert('Fehler beim Erstellen des Standorts: ' + (result.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        console.error('Error creating site:', err);
+        alert('Fehler beim Erstellen des Standorts. Bitte versuchen Sie es erneut.');
+    }
+}
+
+// Edit Site Modal
+async function showEditSiteModal(siteId) {
+    try {
+        const resp = await fetch(`/api/sites/${siteId}`);
+        const site = await resp.json();
+        
+        if (!site || !site.id) {
+            alert('Fehler beim Laden der Standort-Daten.');
+            return;
+        }
+        
+        document.getElementById('edit-site-id').value = site.id;
+        document.getElementById('edit-site-name').value = site.name || '';
+        document.getElementById('edit-site-city').value = site.location?.city || '';
+        document.getElementById('edit-site-latitude').value = site.location?.latitude || '';
+        document.getElementById('edit-site-longitude').value = site.location?.longitude || '';
+        
+        document.getElementById('edit-site-modal').style.display = 'flex';
+    } catch (err) {
+        console.error('Error loading site data:', err);
+        alert('Fehler beim Laden der Standort-Daten.');
+    }
+}
+
+function closeEditSiteModal() {
+    document.getElementById('edit-site-modal').style.display = 'none';
+    document.getElementById('edit-site-status-message').style.display = 'none';
+}
+
+async function saveEditedSite(event) {
+    event.preventDefault();
+    
+    const siteId = parseInt(document.getElementById('edit-site-id').value);
+    const formData = {
+        name: document.getElementById('edit-site-name').value.trim(),
+        city: document.getElementById('edit-site-city').value.trim() || null,
+        latitude: document.getElementById('edit-site-latitude').value ? parseFloat(document.getElementById('edit-site-latitude').value) : null,
+        longitude: document.getElementById('edit-site-longitude').value ? parseFloat(document.getElementById('edit-site-longitude').value) : null
+    };
+    
+    if (!formData.name) {
+        alert('Bitte geben Sie einen Standort-Namen ein.');
+        return;
+    }
+    
+    const statusMsg = document.getElementById('edit-site-status-message');
+    statusMsg.style.display = 'block';
+    statusMsg.style.background = 'rgba(59, 130, 246, 0.1)';
+    statusMsg.style.color = '#93c5fd';
+    statusMsg.textContent = 'Speichere Änderungen...';
+    
+    try {
+        const resp = await fetch(`/api/sites/${siteId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await resp.json();
+        
+        if (result.success) {
+            statusMsg.style.background = 'rgba(16, 185, 129, 0.1)';
+            statusMsg.style.color = '#6ee7b7';
+            statusMsg.textContent = '✅ ' + (result.message || 'Standort erfolgreich aktualisiert!');
+            
+            setTimeout(() => {
+                closeEditSiteModal();
+                alert('Standort erfolgreich aktualisiert! Bitte starten Sie den Container neu, damit die Änderungen wirksam werden.');
+                loadSites();
+            }, 1500);
+        } else {
+            statusMsg.style.background = 'rgba(239, 68, 68, 0.1)';
+            statusMsg.style.color = '#fca5a5';
+            statusMsg.textContent = '❌ ' + (result.error || 'Fehler beim Aktualisieren');
+        }
+    } catch (err) {
+        console.error('Error updating site:', err);
+        statusMsg.style.background = 'rgba(239, 68, 68, 0.1)';
+        statusMsg.style.color = '#fca5a5';
+        statusMsg.textContent = '❌ Fehler beim Aktualisieren. Bitte versuchen Sie es erneut.';
+    }
+}
+
+async function duplicateSite(siteId) {
+    if (!confirm(`Möchten Sie den Standort (ID: ${siteId}) wirklich kopieren?\n\nAlle Konfigurationen (BESS, MQTT, Modbus, etc.) werden übernommen.`)) {
+        return;
+    }
+    
+    try {
+        const resp = await fetch(`/api/sites/${siteId}/duplicate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await resp.json();
+        
+        if (result.success) {
+            alert(`Standort erfolgreich kopiert! Neue ID: ${result.site_id}\nBitte starten Sie den Container neu, damit die Änderungen wirksam werden.`);
+            loadSites();
+        } else {
+            alert('Fehler beim Kopieren des Standorts: ' + (result.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        console.error('Error duplicating site:', err);
+        alert('Fehler beim Kopieren des Standorts. Bitte versuchen Sie es erneut.');
+    }
+}
+
+async function deleteSite(siteId, siteName) {
+    if (!confirm(`Möchten Sie den Standort "${siteName}" (ID: ${siteId}) wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`)) {
+        return;
+    }
+    
+    try {
+        const resp = await fetch(`/api/sites/${siteId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await resp.json();
+        
+        if (result.success) {
+            alert('Standort erfolgreich gelöscht! Bitte starten Sie den Container neu, damit die Änderungen wirksam werden.');
+            loadSites();
+        } else {
+            alert('Fehler beim Löschen des Standorts: ' + (result.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        console.error('Error deleting site:', err);
+        alert('Fehler beim Löschen des Standorts. Bitte versuchen Sie es erneut.');
+    }
+}
+
+// Ensure add site button is visible
+function ensureAddSiteButtonVisible() {
+    const btn = document.getElementById('add-site-button');
+    console.log('Checking button visibility, found:', btn);
+    if (btn) {
+        btn.style.display = 'flex';
+        btn.style.visibility = 'visible';
+        btn.style.opacity = '1';
+        btn.style.position = 'relative';
+        btn.style.zIndex = '10';
+        console.log('Button styles applied:', {
+            display: btn.style.display,
+            visibility: btn.style.visibility,
+            opacity: btn.style.opacity
+        });
+    } else {
+        console.error('Button add-site-button not found in DOM!');
+    }
+}
+
+// Auto-refresh alle 5 Sekunden
+setInterval(loadSites, 5000);
+
+// Initial load
+loadSites();
+
+// Ensure button is visible after page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOMContentLoaded fired');
+        ensureAddSiteButtonVisible();
+        setTimeout(ensureAddSiteButtonVisible, 100);
+        setTimeout(ensureAddSiteButtonVisible, 500);
+    });
+} else {
+    console.log('DOM already loaded');
+    ensureAddSiteButtonVisible();
+    setTimeout(ensureAddSiteButtonVisible, 100);
+    setTimeout(ensureAddSiteButtonVisible, 500);
+}
+</script>
+
+{% endblock %}
+

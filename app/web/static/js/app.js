@@ -231,8 +231,7 @@ function initializeCharts() {
                     type: 'linear',
                     display: true,
                     position: 'left',
-                    min: 0,
-                    max: 200,
+                    beginAtZero: false,
                     title: {
                         display: true,
                         text: 'Price (€/MWh)',
@@ -245,6 +244,7 @@ function initializeCharts() {
                     type: 'linear',
                     display: true,
                     position: 'right',
+                    beginAtZero: false,
                     min: 0,
                     max: 100,
                     title: {
@@ -321,6 +321,16 @@ function updatePriceChart(forecast, plan) {
         powerChart.data.datasets[1].data = pvData;
         powerChart.data.datasets[2].data = loadData;
         powerChart.update();
+    }
+    
+    // Berechne dynamische Y-Achsen-Skalierung für Price
+    if (priceData.length > 0) {
+        const minPrice = Math.min(...priceData);
+        const maxPrice = Math.max(...priceData);
+        const pricePadding = (maxPrice - minPrice) * 0.1; // 10% Padding
+        
+        priceChart.options.scales.y.min = Math.max(0, minPrice - pricePadding);
+        priceChart.options.scales.y.max = maxPrice + pricePadding;
     }
     
     priceChart.data.labels = labels;

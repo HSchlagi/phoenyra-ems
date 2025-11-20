@@ -1,0 +1,148 @@
+# Beispiel-Konfiguration für Multi-Site-Modus
+# 
+# Um Multi-Site zu aktivieren, kopiere diese Struktur in deine ems.yaml
+# unter den Schlüssel 'sites':
+
+sites:
+  default_site_id: 1
+  sites:
+    1:
+      name: "Standort Wien"
+      location:
+        city: "Wien"
+        latitude: 48.2082
+        longitude: 16.3738
+      bess:
+        energy_capacity_kwh: 200.0
+        power_charge_max_kw: 100.0
+        power_discharge_max_kw: 100.0
+        efficiency_charge: 0.95
+        efficiency_discharge: 0.95
+        soc_max_percent: 90.0
+        soc_min_percent: 10.0
+      modbus:
+        enabled: false
+        connection_type: tcp
+        host: "192.168.1.100"
+        port: 502
+        profile: hithium_ess_5016
+        poll_interval_s: 2.0
+      mqtt:
+        enabled: false
+        broker_host: "mqtt.wien.local"
+        broker_port: 1883
+        topics:
+          subscribe:
+            telemetry: "phoenyra/site1/telemetry"
+          publish:
+            commands: "phoenyra/site1/commands"
+      forecast:
+        demo_mode: true
+        pv_peak_power_kw: 50.0
+        latitude: 48.2082
+        longitude: 16.3738
+        pv_efficiency: 0.85
+        use_prophet: false
+        use_weather: false
+      grid_connection:
+        max_power_kw: 30.0
+        monitoring:
+          enabled: true
+      feedin_limitation:
+        enabled: true
+        mode: fixed
+        fixed_limit_pct: 70.0
+        pv_forecast_integration: true
+      grid_tariffs:
+        enabled: true
+        tariff_structure: NE7
+        base_tariff_eur_per_kw: 0.15
+        time_variable: true
+        high_load_windows:
+          - start: '17:00'
+            end: '20:00'
+            multiplier: 1.5
+      ems:
+        mode: auto
+        optimization_interval_minutes: 15
+        timestep_s: 2
+      strategies:
+        selection_mode: auto
+        manual_strategy: arbitrage
+        switch_threshold: 0.15
+      database:
+        history_path: data/ems_history_site_1.db
+    
+    2:
+      name: "Standort Linz"
+      location:
+        city: "Linz"
+        latitude: 48.3069
+        longitude: 14.2858
+      bess:
+        energy_capacity_kwh: 300.0
+        power_charge_max_kw: 150.0
+        power_discharge_max_kw: 150.0
+        efficiency_charge: 0.95
+        efficiency_discharge: 0.95
+        soc_max_percent: 90.0
+        soc_min_percent: 10.0
+      modbus:
+        enabled: false
+        connection_type: tcp
+        host: "192.168.1.200"
+        port: 502
+        profile: wstech_pcs
+        poll_interval_s: 2.0
+      mqtt:
+        enabled: false
+        broker_host: "mqtt.linz.local"
+        broker_port: 1883
+        topics:
+          subscribe:
+            telemetry: "phoenyra/site2/telemetry"
+          publish:
+            commands: "phoenyra/site2/commands"
+      forecast:
+        demo_mode: true
+        pv_peak_power_kw: 75.0
+        latitude: 48.3069
+        longitude: 14.2858
+        pv_efficiency: 0.85
+        use_prophet: false
+        use_weather: false
+      grid_connection:
+        max_power_kw: 50.0
+        monitoring:
+          enabled: true
+      feedin_limitation:
+        enabled: true
+        mode: dynamic
+        dynamic_rules:
+          - time: "06:00-18:00"
+            limit_pct: 70.0
+          - time: "18:00-22:00"
+            limit_pct: 50.0
+          - time: "22:00-06:00"
+            limit_pct: 0.0
+        pv_forecast_integration: true
+      grid_tariffs:
+        enabled: true
+        tariff_structure: NE5
+        base_tariff_eur_per_kw: 0.20
+        time_variable: true
+        high_load_windows:
+          - start: '17:00'
+            end: '20:00'
+            multiplier: 1.5
+      ems:
+        mode: auto
+        optimization_interval_minutes: 15
+        timestep_s: 2
+      strategies:
+        selection_mode: auto
+        manual_strategy: arbitrage
+        switch_threshold: 0.15
+      database:
+        history_path: data/ems_history_site_2.db
+
