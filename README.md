@@ -62,7 +62,7 @@ phoenyra-EMS/
 ### **📊 Dashboard & Analytics**
 - ✅ **Live-Dashboard:** Echtzeit-Visualisierung mit Chart.js
 - ✅ **Analytics-Dashboard:** Historische Performance-Analyse
-- ✅ **Monitoring Page:** Live-Telemetrie (SoC, SoH, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarme) inkl. Rohdaten-Viewer
+- ✅ **Monitoring Page:** Live-Telemetrie (SoC, SoH, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarme) inkl. Einspeisebegrenzung, Netzanschlussabsicherung, Powerflow-Diagramm & Rohdaten-Viewer
 - ✅ **Settings UI:** MQTT- & Modbus-Konfiguration mit Profil-Auswahl, dynamischem Register-Mapping & Verbindungstest im Browser
 - ✅ **KPI-Tracking:** Gewinn, Zyklen, SoC, Strategien
 - ✅ **Navigation:** Professionelles UI mit Tabs
@@ -110,7 +110,7 @@ docker-compose -f deploy/docker-compose.yml up -d --build
 
 ### **Dashboard öffnen (Docker):**
 ```
-http://localhost:5050
+http://localhost:8080
 Login: admin / admin123
 ```
 
@@ -211,6 +211,8 @@ examples.run_peak_shaving_example()
 - **Live-Telemetrie:** SoC, SoH, Lade-/Entladeleistung, Netz-/Last-/PV-Leistung
 - **Grenzwerte:** Anzeige der zulässigen Lade-/Entladeleistung & Ströme laut BMS, Isolationswiderstand
 - **DSO & Power-Control:** KPI für Netzbetreiberstatus (Normal/Safety/Abschalten) inkl. wirksamem Limit (%), Statusgründe und Vorwarnung bei deaktivierter Power-Control
+- **Einspeisebegrenzung:** Dynamische Begrenzung der Netzeinspeisung (0%/50%/70%) mit Fest- oder Dynamikmodus
+- **Netzanschlussabsicherung:** Statische Leistungsgrenzen am Netzanschlusspunkt (z.B. 30 kW) mit Auslastungsanzeige
 - **Statusübersicht:** Systemstatus inkl. Statuscode, aktive Alarmmeldungen & Datenquelle (MQTT/Modbus/Simulation)
 - **Charts:** SoC-Verlauf & Leistungskanäle der letzten 60 min
 - **Rohdaten:** JSON-View der letzten Telemetrie-Payloads, automatisch entprellt
@@ -229,6 +231,8 @@ examples.run_peak_shaving_example()
 - **MQTT-Konfiguration:** Broker, Credentials, Topics mit Testfunktion
 - **Modbus-Konfiguration:** Profil-Auswahl (z. B. Hithium, WSTECH), Verbindungstyp, Host/Port/Slave-ID, Poll-Intervall sowie dynamischer Register-Editor inkl. Funktionscode, Skalierung & Alarmdefinitionen
 - **Power-Control:** Aktivierung der DSO-/Sicherheitslogik (Trip, Prozentlimit) und optionales Auto-Write der Modbus-Kommandos (`remote_enable`, `active_power_set_w`, `active_power_limit_pct`)
+- **Einspeisebegrenzung:** Konfiguration der dynamischen Netzeinspeisungsbegrenzung (Aktivierung, Modus: Fest/Dynamisch, fester Limit-Wert, PV-Integration, zeitbasierte Regeln)
+- **Netzanschlussabsicherung:** Konfiguration statischer Leistungsgrenzen am Netzanschlusspunkt (max. Leistung in kW, Monitoring-Aktivierung)
 
 ## 📡 **API-Endpunkte**
 
@@ -255,6 +259,12 @@ GET  /api/history/state           # State History (Parameter: hours)
 GET  /api/history/optimization    # Optimization History (Parameter: days)
 GET  /api/analytics/daily         # Tägliche Metriken (Parameter: days)
 GET  /api/analytics/summary       # Performance-Zusammenfassung (Parameter: days)
+```
+
+### **Configuration**
+```bash
+GET/POST /api/feedin_limitation/config    # Einspeisebegrenzung konfigurieren
+GET/POST /api/grid_connection/config      # Netzanschlussabsicherung konfigurieren
 ```
 
 ## 🏗️ **Architektur**

@@ -18,7 +18,7 @@ Phoenyra EMS (Energy Management System) ist ein intelligentes, strategiebasierte
 - ✅ **Analytics-Dashboard:** Historische Performance-Analyse
 - ✅ **Forecasts-Dashboard:** Prognosen und Marktdaten
 - ✅ **Settings-Dashboard:** System-Konfiguration mit MQTT-/Modbus-Assistent & Power-Control Setup
-- ✅ **Monitoring-Dashboard:** Live-Telemetrie (SoC, SoH, Spannung, Temperatur, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarmbits) inkl. DSO-Power-Control-KPI (Normal/Safety/Abschalten mit Limit)
+- ✅ **Monitoring-Dashboard:** Live-Telemetrie (SoC, SoH, Spannung, Temperatur, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarmbits) inkl. DSO-Power-Control-KPI (Normal/Safety/Abschalten mit Limit), Einspeisebegrenzung, Netzanschlussabsicherung & Powerflow-Diagramm
 - ✅ **KPI-Tracking:** Gewinn, Zyklen, SoC, Strategien
 - ✅ **Navigation:** Professionelles UI mit Tabs
 
@@ -28,7 +28,7 @@ Phoenyra EMS (Energy Management System) ist ein intelligentes, strategiebasierte
 - ✅ **SQLite DB:** Historische Datenspeicherung
 - ✅ **SSE:** Server-Sent Events für Live-Updates
 - ✅ **MQTT:** IoT-Integration (optional)
-- ✅ **Modbus & Power-Control:** Geräte-Integration via Profilbibliothek (z. B. Hithium ESS, WSTECH PCS) inkl. Skalierung, Alarmbits, RTC-Synchronisation, UI-gestütztem Register-Editor sowie Power-Control-Logik (Trip, Prozentlimit, Auto-Write)
+- ✅ **Modbus & Power-Control:** Geräte-Integration via Profilbibliothek (z. B. Hithium ESS, WSTECH PCS) inkl. Skalierung, Alarmbits, RTC-Synchronisation, UI-gestütztem Register-Editor sowie Power-Control-Logik (Trip, Prozentlimit, Auto-Write)
 
 ---
 
@@ -68,7 +68,7 @@ Phoenyra EMS (Energy Management System) ist ein intelligentes, strategiebasierte
 ### **Container-Architektur (Docker)**
 
 ```
-Phoenyra BESS EMS (Port 5050)
+Phoenyra BESS EMS (Port 8080)
 ├── ems-web (Phoenyra BESS EMS Container)
 │   ├── Flask Web Server (Gunicorn)
 │   ├── Dashboard UI
@@ -94,118 +94,70 @@ phoenyra-EMS/
 │   ├── ems/
 │   │   ├── controller.py         # EMS Core Controller
 │   │   ├── power_control.py      # Power-Control / DSO-Logik
+│   │   ├── feedin_limitation.py  # Einspeisebegrenzung
 │   │   ├── optimizer.py          # Optimierungs-Engine
 │   │   ├── strategy_manager.py   # Strategien-Manager
 │   │   ├── optimizers/
 │   │   │   └── lp_optimizer.py   # Linear Programming Optimizer
 │   │   └── strategies/
+│   │       ├── base_strategy.py
 │   │       ├── arbitrage_strategy.py
 │   │       ├── peak_shaving_strategy.py
 │   │       ├── self_consumption_strategy.py
 │   │       └── load_balancing_strategy.py
 │   ├── services/
-│   │   ├── prices/
-│   │   │   └── awattar.py        # aWATTar Preis-API
-│   │   ├── forecast/
-│   │   │   ├── simple.py         # Simple Forecasting
-│   │   │   ├── prophet_forecaster.py  # Prophet ML Forecasting
-│   │   │   └── weather_forecaster.py  # Weather-based Forecasting
+│   │   ├── communication/
+│   │   │   ├── mqtt_client.py    # MQTT Client
+│   │   │   └── modbus_client.py  # Modbus Client
 │   │   ├── database/
 │   │   │   └── history_db.py     # Historien-Datenbank
-│   │   └── communication/
-│   │       ├── mqtt_client.py    # MQTT Client
-│   │       └── modbus_client.py  # Modbus Client
-│   ├── web/
-│   │   ├── app.py                # Flask Application
-│   │   ├── routes.py             # Flask Routes
-│   │   ├── static/
-│   │   │   ├── css/
-│   │   │   │   ├── dashboard.css
-│   │   │   │   └── login.css
-│   │   │   ├── js/
-│   │   │   │   └── app.js        # Dashboard JavaScript
-│   │   │   └── logo/
-│   │   │       └── Phoenyra_Abstract.png
-│   │   └── templates/
-│   │       ├── base.html
-│   │       ├── login.html
-│   │       ├── dashboard.html
-│   │       ├── analytics.html
-│   │       ├── forecasts.html
-│   │       └── settings.html
-│   ├── auth/
-│   │   └── security.py           # Authentifizierung
-│   └── requirements.txt
+│   │   ├── forecast/
+│   │   │   ├── simple.py          # Einfache Prognosen
+│   │   │   ├── prophet_forecaster.py  # Prophet ML
+│   │   │   └── weather_forecaster.py  # Wetterbasierte PV-Prognosen
+│   │   └── prices/
+│   │       ├── awattar.py         # aWATTar API
+│   │       └── epex.py            # EPEX API
+│   └── web/
+│       ├── app.py                 # Flask App
+│       ├── routes.py              # Web & API Routes
+│       ├── templates/             # HTML Templates
+│       │   ├── base.html
+│       │   ├── dashboard.html
+│       │   ├── monitoring.html
+│       │   ├── analytics.html
+│       │   ├── forecasts.html
+│       │   └── settings.html
+│       └── static/
+│           ├── css/
+│           │   └── dashboard.css
+│           └── js/
+│               ├── app.js
+│               └── monitoring.js
 ├── deploy/
 │   ├── docker-compose.yml        # Docker Compose Setup
-│   ├── Dockerfile                # Docker Image Definition
-│   ├── gunicorn.conf.py          # Gunicorn Configuration
-│   └── mqtt/
-│       └── config/
-│           └── mosquitto.conf    # MQTT Broker Config
-├── data/
-│   └── ems.db                    # Haupt-Datenbank
-├── README.md
-├── EMS_MODUL_DOKUMENTATION.md
-├── DOKUMENTATION-EMS.md          # Diese Datei
-└── requirements.txt
+│   ├── Dockerfile                # Docker Image
+│   └── mqtt/                     # MQTT Broker Config
+└── data/                         # Persistente Daten
 ```
 
 ---
 
-## 🚀 **Installation & Deployment**
+## 🎨 **Dashboard Features**
 
-### **Option 1: Docker Deployment (Empfohlen)**
-
-```bash
-# Container bauen und starten
-cd deploy
-docker-compose up -d --build
-
-# Logs anzeigen
-docker-compose logs -f ems-web
-
-# Container stoppen
-docker-compose down
-```
-
-**Zugriff:** http://localhost:5050  
-**Login:** admin / admin123
-
-### **Option 2: Lokale Installation**
-
-```bash
-# In virtueller Umgebung installieren
-cd app
-pip install -r requirements.txt
-
-# Server starten
-python -m flask --app web.app run --debug --port 5000
-```
-
-**Zugriff:** http://localhost:5000  
-**Login:** admin / admin123
-
----
-
-## 📊 **Dashboard-Features**
-
-### **1. Haupt-Dashboard (`/`)**
+### **1. Main Dashboard (`/`)**
 
 Echtzeit-Monitoring und KPI-Überwachung:
 
 #### **KPI-Cards:**
-- **State of Charge (SoC):** Aktueller Batteriezustand (0-100%)
-- **BESS Power:** Aktuelle Lade-/Entladeleistung (kW)
-- **Active Strategy:** Aktuell verwendete Strategie
-- **Expected Profit:** Erwarteter Gewinn (24h Forecast)
+- **State of Charge (SoC):** Aktueller Batterieladezustand in %
+- **BESS Power:** Aktuelle Lade-/Entladeleistung in kW
+- **Active Strategy:** Aktuell aktive Strategie (Arbitrage, Peak Shaving, etc.)
+- **Expected Profit:** Erwarteter Gewinn für 24h
 
 #### **Charts:**
-- **24h Optimization Plan:** BESS Power, PV, Load Trends
-- **Price & SoC Forecast:** Strompreise und geplanter SoC-Verlauf
-
-#### **System Status:**
-- Grid Power, PV Generation, Load, Current Price
+- **24h Optimization Plan:** BESS, PV, Load Leistung über 24 Stunden
+- **Price + SoC Forecast:** Strompreis und SoC-Prognose
 
 #### **Live-Updates:**
 - Server-Sent Events (SSE) für Echtzeit-Updates
@@ -217,7 +169,11 @@ Live-Telemetrie aus Modbus/MQTT oder Simulation inklusive BMS-Metadaten:
 
 - **KPI-Kacheln:** SoC, SoH, Lade-/Entladeleistung, Batteriespannung, Temperatur, Isolationswiderstand
 - **Grenzwerte:** Anzeige der vom BMS gelieferten max. Lade-/Entladeleistung & Ströme für eine sichere Fahrweise
+- **Einspeisebegrenzung:** KPI für dynamische Begrenzung der Netzeinspeisung (aktueller Limit-Wert in %, Modus: Aus/Fest/Dynamisch)
+- **Netzanschlussabsicherung:** KPIs für statische Leistungsgrenzen am Netzanschlusspunkt (max. Leistung in kW) und aktuelle Auslastung (in %)
+- **DSO & Power-Control:** KPI für Netzbetreiberstatus (Normal/Safety/Abschalten) inkl. wirksamem Limit (%), Statusgründe und Vorwarnung bei deaktivierter Power-Control
 - **Charts:** SoC-Verlauf & Leistungskanäle (PV, Load, Grid, BESS) der letzten 60 Minuten
+- **Powerflow-Diagramm:** Sankey-Diagramm zur Visualisierung der Energieflüsse (PV, Batterie, Netz, Last) über die letzten 5 Minuten
 - **Status & Rohdaten:** Systemstatus-Text + Code, aktive Alarmmeldungen, Datenquelle sowie JSON-View der aktuellen Telemetrie (entprellt)
 - **Telemetrie-Puffer:** autom. Entprellung & Zusammenführung unterschiedlicher Quellen (MQTT/Modbus/Simulation)
 
@@ -256,8 +212,10 @@ System-Konfiguration mit interaktivem Assistenten:
 - EMS-Parameter & Strategiemodus (Auto/Manuell)
 - Prognose-Optionen & BESS-Constraints
 - **MQTT-Konfiguration:** Broker, Credentials, Topics, Verbindungstest
-- **Modbus-Konfiguration:** Profil-Auswahl (z. B. Hithium ESS), Verbindungstyp (TCP/RTU), Host/Port/Slave-ID, Poll-Intervall, dynamischer Register-Editor inkl. Funktionscode, Skalierung & Alarmdefinitionen
+- **Modbus-Konfiguration:** Profil-Auswahl (z. B. Hithium ESS), Verbindungstyp (TCP/RTU), Host/Port/Slave-ID, Poll-Intervall, dynamischer Register-Editor inkl. Funktionscode, Skalierung & Alarmdefinitionen
 - **Register-Mapping:** Werte werden direkt aus Profilen übernommen und können überschrieben werden (inkl. Anzeige der Skalierung/Offsets)
+- **Einspeisebegrenzung:** Konfiguration der dynamischen Netzeinspeisungsbegrenzung (Aktivierung, Modus: Fest/Dynamisch, fester Limit-Wert, PV-Integration, zeitbasierte Regeln)
+- **Netzanschlussabsicherung:** Konfiguration statischer Leistungsgrenzen am Netzanschlusspunkt (max. Leistung in kW, Monitoring-Aktivierung)
 
 ---
 
@@ -300,122 +258,82 @@ GET  /api/modbus/config      # Modbus Konfiguration
 POST /api/modbus/config      # Modbus Konfiguration aktualisieren
 POST /api/modbus/test        # Modbus Verbindung testen
 GET  /api/modbus/profiles    # Verfügbare Modbus-Profile (optional: ?profile=<key> für Details)
+GET/POST /api/feedin_limitation/config    # Einspeisebegrenzung konfigurieren
+GET/POST /api/grid_connection/config      # Netzanschlussabsicherung konfigurieren
 ```
-
----
-
-## 🎯 **Strategien**
-
-### **1. Arbitrage**
-Kauft Strom bei niedrigen Preisen, verkauft bei hohen. Nutzt Day-Ahead Preisunterschiede optimal aus.
-
-**Optimierung:** Linear Programming (CVXPY)  
-**Ergebnis:** Maximaler Gewinn durch Preisarbitrage
-
-### **2. Peak Shaving**
-Reduziert Lastspitzen automatisch. Identifiziert und glättet Peaks im Lastprofil.
-
-**Anwendung:** Industrie & Gewerbe  
-**Ergebnis:** 20-30% Lastspitzen-Reduktion
-
-### **3. Self-Consumption**
-Maximiert PV-Eigenverbrauch. Speichert Überschuss, nutzt bei Bedarf.
-
-**Anwendung:** PV-Anlagen  
-**Ergebnis:** >80% Eigenverbrauchsquote
-
-### **4. Load Balancing**
-Glättet Lastschwankungen und Volatilität. Reduziert Netzbelastung durch Ausgleich.
-
-**Methode:** Moving Average + BESS-Kompensation  
-**Ergebnis:** Geglättetes Lastprofil, reduzierte Gradienten
 
 ---
 
 ## 🔧 **Konfiguration**
 
-### **EMS-Konfiguration (`config/ems.yaml`)**
+### **EMS-Konfiguration (`app/config/ems.yaml`)**
+
+Die Hauptkonfigurationsdatei enthält alle wichtigen Parameter:
 
 ```yaml
+# BESS-Parameter
 bess:
-  efficiency_charge: 0.95
-  efficiency_discharge: 0.95
-  energy_capacity_kwh: 200.0
-  power_charge_max_kw: 100.0
-  power_discharge_max_kw: 100.0
-  soc_max_percent: 90.0
-  soc_min_percent: 10.0
+  capacity_kwh: 50.0
+  max_power_kw: 30.0
+  efficiency: 0.95
 
-ems:
-  mode: auto
-  optimization_interval_minutes: 15
-  timestep_s: 2
+# Strategie-Konfiguration
+strategy:
+  mode: auto  # auto | manual
+  current: null
 
-strategies:
-  selection_mode: auto
-  manual_strategy: arbitrage
-  switch_threshold: 0.15
+# Prognose-Konfiguration
+forecast:
+  use_prophet: false
+  use_weather: false
 
-prices:
-  demo_mode: true
-  provider: awattar
-  region: AT
-
+# MQTT-Konfiguration
 mqtt:
   enabled: true
-  broker_host: localhost
-  broker_port: 1883
+  broker: localhost
+  port: 1883
+  topics:
+    telemetry: phoenyra/bess/telemetry
 
+# Modbus-Konfiguration
 modbus:
-  enabled: false
+  enabled: true
   profile: hithium_ess_5016
   connection_type: tcp
-  host: localhost
+  host: 192.168.1.100
   port: 502
   slave_id: 1
-  timeout: 3.0
-  retries: 3
-  poll_interval_s: 2.0
-  status_codes:
-    "0": Initialisierung
-    "1": Laden
-    "2": Entladen
-    "3": Bereit
-    "5": Ladesperre
-    "6": Entladesperre
-    "7": Lade- & Entladesperre
-    "8": Fehler
-  registers:
-    soc_percent:
-      address: 4
-      function: 4
-      scale: 1.0
-      unit: "%"
-      description: System State of Charge
-    voltage_v:
-      address: 2
-      function: 4
-      scale: 0.1
-      unit: V
-      description: System-Gesamtspannung
-    max_charge_power_kw:
-      address: 33
-      function: 4
-      scale: 0.1
-      unit: kW
-      description: Zulässige maximale Ladeleistung
-    status_code:
-      address: 43
-      function: 4
-      description: BMS Systemstatus
+  poll_interval_seconds: 2
+
+# Power-Control & DSO-Logik
+power_control:
+  enabled: false
+  dso_trip_register: null
+  safety_alarm_register: null
+  auto_write: false
+
+# Einspeisebegrenzung
+feedin_limitation:
+  enabled: false
+  mode: off  # off | fixed | dynamic
+  fixed_limit_pct: 70.0
+  pv_integration_enabled: false
+  dynamic_rules: []
+
+# Netzanschlussabsicherung
+grid_connection:
+  max_power_kw: 30.0
+  monitoring_enabled: true
 ```
 
-> 💡 **Hinweis:** Profile liefern vollständige Registerdefinitionen inkl. Funktionscode, Skalierung, Offsets & Alarmbits. Über das Settings-Dashboard können Werte überschrieben, Profile gewechselt oder eigene Register ergänzt werden. Alle Änderungen landen direkt in `config/ems.yaml`.
+---
 
-### **Modbus-Profilbibliothek**
+## 🔌 **Modbus-Integration**
+
+### **Profilbibliothek**
 
 - Basis-Datei: `app/config/modbus_profiles.py`
-- Enthält vordefinierte Profile (z. B. `hithium_ess_5016`) mit:
+- Enthält vordefinierte Profile (z. B. `hithium_ess_5016`) mit:
   - Register-Definitionen (Adresse, Funktionscode, Datentyp, Skalierung, Offset, Einheit, Kategorie)
   - Alarmdefinitionen (Discrete Inputs mit Bit-Mapping)
   - Statuscode-Mapping (Code → Beschreibung)
@@ -429,7 +347,27 @@ modbus:
 - Implementierung in `app/ems/power_control.py`: wertet Signale aus, erstellt `PowerControlDecision` (wirksamer Sollwert, Limit-Grund) und bereitet Modbus-Schreibkommandos vor.
 - `app/ems/controller.py` integriert die Entscheidungen in den Fahrplan-Setpoint und schreibt resultierende Felder in `PlantState` (`remote_shutdown_requested`, `active_power_limit_w`, `power_limit_reason`).
 - Monitoring zeigt den aktuellen Status (Normal/Safety/Abschalten) samt Limit (%) und Grund; ermöglicht schnelle Diagnose bei Netzbetreiber-Eingriffen.
-- Optionales `auto_write`: schreibt `remote_enable`, `active_power_set_w` und `active_power_limit_pct` auf das ausgewählte Modbus-Profil (z. B. WSTECH PCS).
+- Optionales `auto_write`: schreibt `remote_enable`, `active_power_set_w` und `active_power_limit_pct` auf das ausgewählte Modbus-Profil (z. B. WSTECH PCS).
+
+### **Einspeisebegrenzung (Feed-in Limitation)**
+
+- Konfiguration über `feedin_limitation` in `app/config/ems.yaml`. Ermöglicht dynamische Begrenzung der Netzeinspeisung basierend auf festen Prozentsätzen (0%, 50%, 70%) oder zeitbasierten Regeln.
+- Implementierung in `app/ems/feedin_limitation.py`: `FeedinLimitationManager` verwaltet die Logik zur Berechnung des aktuellen Limits und passt den Optimierungsplan entsprechend an.
+- **Modi:**
+  - `off`: Einspeisebegrenzung deaktiviert
+  - `fixed`: Fester Prozentsatz (z.B. 70% der PV-Leistung)
+  - `dynamic`: Zeitbasierte Regeln mit verschiedenen Limits zu unterschiedlichen Tageszeiten
+- **PV-Integration:** Optional kann die PV-Prognose in die Limit-Berechnung einbezogen werden.
+- **Monitoring:** KPI zeigt aktuellen Limit-Wert (%) und aktiven Modus auf der Monitoring-Seite.
+- **API:** `GET/POST /api/feedin_limitation/config` für Konfiguration über die Settings-UI.
+
+### **Netzanschlussabsicherung (Grid Connection Security)**
+
+- Konfiguration über `grid_connection` in `app/config/ems.yaml`. Definiert statische Leistungsgrenzen am Netzanschlusspunkt für Einspeisung und Bezug.
+- **Maximale Leistung:** Konfigurierbare Obergrenze (z.B. 30 kW) für die Gesamtleistung am Netzanschlusspunkt.
+- **Monitoring:** KPI zeigt maximale Leistungsgrenze (kW) und aktuelle Auslastung (%) mit Farbcodierung (grün < 50%, gelb 50-80%, rot > 80%).
+- **Integration:** Die Grenzen werden direkt in `app/ems/controller.py` als zusätzliche Constraints in der Optimierungslogik berücksichtigt.
+- **API:** `GET/POST /api/grid_connection/config` für Konfiguration über die Settings-UI.
 
 ### **RTC-Synchronisation**
 
@@ -444,35 +382,36 @@ modbus:
 
 | Container | Port | Beschreibung |
 |-----------|------|--------------|
-| `phoenyra-bess-ems` | 5050 | EMS Web Interface & API |
-| `phoenyra-ems-mqtt` | 1883 | MQTT Broker |
+| `phoenyra-bess-ems` | 8080 | Flask Web Server mit EMS Core |
+| `phoenyra-ems-mqtt` | 1883 | MQTT Broker (Eclipse Mosquitto) |
 
-### **Docker Befehle**
+### **Container starten:**
 
 ```bash
-# Container starten
-docker-compose -f deploy/docker-compose.yml up -d
+cd deploy
+docker-compose up -d --build
+```
 
-# Logs anzeigen
-docker-compose -f deploy/docker-compose.yml logs -f
+### **Container stoppen:**
 
-# Container neu bauen
-docker-compose -f deploy/docker-compose.yml up -d --build
+```bash
+cd deploy
+docker-compose down
+```
 
-# Container stoppen
-docker-compose -f deploy/docker-compose.yml down
+### **Logs anzeigen:**
 
-# Alle Container anzeigen
-docker ps --filter "name=phoenyra"
+```bash
+docker-compose -f deploy/docker-compose.yml logs -f ems-web
 ```
 
 ### **Volumes**
 
-- `../data` → `/app/data`: Datenbank und historische Daten
-- `../app/config` → `/app/config:ro`: Konfiguration (Read-Only)
-- `./logs` → `/app/logs`: Anwendungslogs
-- `./mqtt/data` → `/mosquitto/data`: MQTT Persistenz
-- `./mqtt/log` → `/mosquitto/log`: MQTT Logs
+- `../data:/app/data` - Persistente Datenbanken
+- `../app/config:/app/config:rw` - Konfigurationsdateien (read-write)
+- `../app/web/templates:/app/web/templates:ro` - HTML Templates (read-only)
+- `../app/web/static:/app/web/static:ro` - CSS/JS Dateien (read-only)
+- `./logs:/app/logs` - Log-Dateien
 
 ---
 
@@ -480,92 +419,50 @@ docker ps --filter "name=phoenyra"
 
 ### **Live-Monitoring**
 
-Das Dashboard bietet:
-- **Echtzeit-Updates:** Server-Sent Events (SSE)
-- **Interaktive Charts:** Chart.js Visualisierungen
+- **Dashboard:** Echtzeit-Visualisierung aller KPIs
+- **Charts:** Live-Updates alle 2 Sekunden
+- **Telemetrie:** Automatische Entprellung und Zusammenführung
+- **Status:** Systemstatus mit Alarmmeldungen
 - **KPI-Tracking:** Gewinn, Zyklen, SoC, Strategien
-- **Status-Badges:** Live-Systemstatus
-
-### **Historische Daten**
-
-SQLite-Datenbank speichert:
-- State History (SoC, Power, Temperature, etc.)
-- Optimization History (Strategie, Gewinn, Status)
-- Daily Metrics (tägliche Metriken)
-- Performance Summary (Performance-Zusammenfassung)
 
 ### **Logging**
 
-Logs werden geschrieben in:
-- Console (stdout)
-- Log-Files (optional)
-- Docker Logs (`docker logs phoenyra-bess-ems`)
+- **Flask-Logs:** Standard Python-Logging
+- **EMS-Logs:** Controller-Logs mit Timestamps
+- **Modbus-Logs:** Verbindungs- und Register-Logs
+- **MQTT-Logs:** Broker-Verbindungs-Logs
 
 ---
 
-## 🔐 **Sicherheit**
+## 🚀 **Schnellstart**
 
-### **Authentifizierung**
-
-- **Login:** Session-basiert
-- **Benutzer:** Konfigurierbar in `config/users.yaml`
-- **Rollensystem:** admin, viewer
-
-### **CSP (Content Security Policy)**
-
-Das System verwendet Content Security Policy für:
-- Script-Sicherheit
-- XSS-Schutz
-- Ressourcen-Kontrolle
-
----
-
-## 🧪 **Testing**
+### **1. Installation**
 
 ```bash
-# Alle Tests ausführen
-python -m pytest tests/
+cd app
+pip install -r requirements.txt
+```
 
-# Spezifische Tests
-python -m pytest tests/test_ems_controller.py
-python -m pytest tests/test_strategies.py
-python -m pytest tests/test_api.py
+### **2. Konfiguration**
+
+Bearbeiten Sie `app/config/ems.yaml` nach Ihren Bedürfnissen.
+
+### **3. Starten**
+
+```bash
+python -m flask --app web.app run --debug --port 5000
+```
+
+### **4. Dashboard öffnen**
+
+```
+http://localhost:5000
+Login: admin / admin123
 ```
 
 ---
 
-## 📊 **Performance**
-
-### **Optimierungs-Performance**
-
-- **Optimierungszeit:** < 1 Sekunde (Linear Programming)
-- **Forecast-Zeit:** < 5 Sekunden (Prophet ML)
-- **Update-Frequenz:** 2 Sekunden (Live-Dashboard)
-- **DB-Queries:** < 100ms (SQLite)
-
-### **Skalierbarkeit**
-
-- **Multi-Site-Support:** Konfigurierbar
-- **Historical Data:** SQLite-Datenbank
-- **Forecasting:** Prophet ML + Weather API
-
----
-
-## 🔮 **Zukünftige Erweiterungen**
-
-### **Phase 3: Advanced (Geplant)**
-- Multi-Asset Management
-- VPP Integration
-- Grid Services
-- Blockchain Integration
-- Advanced Analytics Dashboard
-- Mobile App
-
----
-
-## 📞 **Support & Dokumentation**
-
-### **Verfügbare Dokumentation**
+## 📚 **Weitere Dokumentation**
 
 - **README.md:** Hauptdokumentation
 - **EMS_MODUL_DOKUMENTATION.md:** Vollständige EMS-Dokumentation
@@ -573,35 +470,8 @@ python -m pytest tests/test_api.py
 - **app/INSTALLATION.md:** Installationsanleitung
 - **deploy/README.md:** Docker-Setup Details
 
-### **API-Dokumentation**
-
-- **OpenAPI Spec:** `/api/openapi.yaml`
-- **REST API:** Alle Endpunkte dokumentiert
-
----
-
-## 📝 **Changelog**
-
-### **Version 2.0 (Aktuell)**
-- ✅ Docker-Integration
-- ✅ MQTT Broker Integration
-- ✅ Datum/Zeit im Header
-- ✅ Footer mit Copyright
-- ✅ Analytics Dashboard
-- ✅ Historische Datenbank
-- ✅ Prophet ML Forecasting
-- ✅ Weather-based PV Forecasting
-- ✅ 4 Strategien implementiert
-
-### **Version 1.0**
-- Grundlegendes EMS-System
-- Arbitrage, Peak Shaving, Self-Consumption Strategien
-- Basis-Dashboard
-- aWATTar Integration
-
 ---
 
 **© 2025 Phoenyra.com by Ing. Heinz Schlagintweit. Alle Rechte vorbehalten.**
 
-*Phoenyra EMS - Intelligentes Energiemanagementsystem*
-
+_Phoenyra EMS - Intelligentes Energiemanagementsystem v2.0_
