@@ -12,6 +12,12 @@ ems:
   mode: auto
   optimization_interval_minutes: 15
   timestep_s: 2
+feedin_limitation:
+  dynamic_rules: []
+  enabled: true
+  fixed_limit_pct: 70
+  mode: fixed
+  pv_forecast_integration: true
 forecast:
   demo_mode: true
   latitude: 48.2082
@@ -23,16 +29,173 @@ forecast:
   pv_peak_power_kw: 50.0
   use_prophet: false
   use_weather: false
+grid_connection:
+  max_power_kw: 30
+  monitoring:
+    enabled: true
 modbus:
-  enabled: false
-  profile: hithium_ess_5016
   connection_type: tcp
+  enabled: false
   host: localhost
-  port: 502
-  slave_id: 1
-  timeout: 3.0
-  retries: 3
   poll_interval_s: 2.0
+  port: 502
+  profile: hithium_ess_5016
+  registers:
+    current_a:
+      address: 3
+      category: telemetry
+      count: 1
+      data_type: uint16
+      description: Systemstrom (positiv = Laden, negativ = Entladen)
+      function: 4
+      offset: -3200.0
+      scale: 0.1
+      signed: false
+      unit: A
+      zero_based: false
+    ems_comm_fault:
+      address: 47
+      category: diagnostics
+      count: 1
+      data_type: uint16
+      description: Kommunikation EMS <-> BMS (0=OK, 1=Fehler)
+      function: 4
+      offset: 0.0
+      scale: 1.0
+      signed: false
+      zero_based: false
+    insulation_resistance_kohm:
+      address: 45
+      category: diagnostics
+      count: 1
+      data_type: uint16
+      description: System-Isolationswiderstand
+      function: 4
+      offset: 0.0
+      scale: 1.0
+      signed: false
+      unit: kOhm
+      zero_based: false
+    max_charge_current_a:
+      address: 35
+      category: limit
+      count: 1
+      data_type: uint16
+      description: Zulässiger maximaler Ladestrom
+      function: 4
+      offset: 0.0
+      scale: 0.1
+      signed: false
+      unit: A
+      zero_based: false
+    max_charge_power_kw:
+      address: 33
+      category: limit
+      count: 1
+      data_type: uint16
+      description: Zulässige maximale Ladeleistung
+      function: 4
+      offset: 0.0
+      scale: 0.1
+      signed: false
+      unit: kW
+      zero_based: false
+    max_discharge_current_a:
+      address: 34
+      category: limit
+      count: 1
+      data_type: uint16
+      description: Zulässiger maximaler Entladestrom
+      function: 4
+      offset: 0.0
+      scale: 0.1
+      signed: false
+      unit: A
+      zero_based: false
+    max_discharge_power_kw:
+      address: 32
+      category: limit
+      count: 1
+      data_type: uint16
+      description: Zulässige maximale Entladeleistung
+      function: 4
+      offset: 0.0
+      scale: 0.1
+      signed: false
+      unit: kW
+      zero_based: false
+    pcs_comm_fault:
+      address: 46
+      category: diagnostics
+      count: 1
+      data_type: uint16
+      description: Kommunikation PCS <-> BMS (0=OK, 1=Fehler)
+      function: 4
+      offset: 0.0
+      scale: 1.0
+      signed: false
+      zero_based: false
+    soc_percent:
+      address: 4
+      category: telemetry
+      count: 1
+      data_type: uint16
+      description: System State of Charge
+      function: 4
+      offset: 0.0
+      scale: 1.0
+      signed: false
+      unit: '%'
+      zero_based: false
+    soh_percent:
+      address: 5
+      category: telemetry
+      count: 1
+      data_type: uint16
+      description: System State of Health
+      function: 4
+      offset: 0.0
+      scale: 1.0
+      signed: false
+      unit: '%'
+      zero_based: false
+    status_code:
+      address: 43
+      category: status
+      count: 1
+      data_type: uint16
+      description: Systemstatus laut BMS
+      function: 4
+      offset: 0.0
+      scale: 1.0
+      signed: false
+      zero_based: false
+    temperature_c:
+      address: 42
+      category: telemetry
+      count: 1
+      data_type: uint16
+      description: Durchschnittliche Systemtemperatur
+      function: 4
+      offset: -40.0
+      scale: 1.0
+      signed: false
+      unit: C
+      zero_based: false
+    voltage_v:
+      address: 2
+      category: telemetry
+      count: 1
+      data_type: uint16
+      description: System-Gesamtspannung
+      function: 4
+      offset: 0.0
+      scale: 0.1
+      signed: false
+      unit: V
+      zero_based: false
+  retries: 3
+  slave_id: 1
   status_codes:
     '0': Initialisierung
     '1': Laden
@@ -42,168 +205,14 @@ modbus:
     '6': Entladesperre
     '7': Lade- & Entladesperre
     '8': Fehler
-  registers:
-    soc_percent:
-      address: 4
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 1.0
-      offset: 0.0
-      unit: '%'
-      description: System State of Charge
-      category: telemetry
-      zero_based: false
-      signed: false
-    soh_percent:
-      address: 5
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 1.0
-      offset: 0.0
-      unit: '%'
-      description: System State of Health
-      category: telemetry
-      zero_based: false
-      signed: false
-    voltage_v:
-      address: 2
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 0.1
-      offset: 0.0
-      unit: V
-      description: System-Gesamtspannung
-      category: telemetry
-      zero_based: false
-      signed: false
-    current_a:
-      address: 3
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 0.1
-      offset: -3200.0
-      unit: A
-      description: Systemstrom (positiv = Laden, negativ = Entladen)
-      category: telemetry
-      zero_based: false
-      signed: false
-    temperature_c:
-      address: 42
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 1.0
-      offset: -40.0
-      unit: C
-      description: Durchschnittliche Systemtemperatur
-      category: telemetry
-      zero_based: false
-      signed: false
-    max_discharge_power_kw:
-      address: 32
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 0.1
-      offset: 0.0
-      unit: kW
-      description: Zulässige maximale Entladeleistung
-      category: limit
-      zero_based: false
-      signed: false
-    max_charge_power_kw:
-      address: 33
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 0.1
-      offset: 0.0
-      unit: kW
-      description: Zulässige maximale Ladeleistung
-      category: limit
-      zero_based: false
-      signed: false
-    max_discharge_current_a:
-      address: 34
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 0.1
-      offset: 0.0
-      unit: A
-      description: Zulässiger maximaler Entladestrom
-      category: limit
-      zero_based: false
-      signed: false
-    max_charge_current_a:
-      address: 35
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 0.1
-      offset: 0.0
-      unit: A
-      description: Zulässiger maximaler Ladestrom
-      category: limit
-      zero_based: false
-      signed: false
-    insulation_resistance_kohm:
-      address: 45
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 1.0
-      offset: 0.0
-      unit: kOhm
-      description: System-Isolationswiderstand
-      category: diagnostics
-      zero_based: false
-      signed: false
-    status_code:
-      address: 43
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 1.0
-      offset: 0.0
-      description: Systemstatus laut BMS
-      category: status
-      zero_based: false
-      signed: false
-    pcs_comm_fault:
-      address: 46
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 1.0
-      offset: 0.0
-      description: Kommunikation PCS <-> BMS (0=OK, 1=Fehler)
-      category: diagnostics
-      zero_based: false
-      signed: false
-    ems_comm_fault:
-      address: 47
-      function: 4
-      count: 1
-      data_type: uint16
-      scale: 1.0
-      offset: 0.0
-      description: Kommunikation EMS <-> BMS (0=OK, 1=Fehler)
-      category: diagnostics
-      zero_based: false
-      signed: false
+  timeout: 3.0
 mqtt:
-  enabled: true
   broker_host: 192.168.1.73
   broker_port: 1883
-  username: mqtt
-  password: 1965_e
   client_id: phoenyra_ems
+  enabled: true
   keepalive: 60
+  password: 1965_e
   qos: 1
   topics:
     publish:
@@ -212,38 +221,39 @@ mqtt:
       optimization: ems/optimization
       status: ems/status
     subscribe:
-      telemetry: homeassistant/sensor/MSA-280024210086/quick/state
       commands: ems/commands
       config: ems/config
       setpoints: ems/setpoints
       strategy: ems/strategy_override
+      telemetry: homeassistant/sensor/MSA-280024210086/quick/state
+  username: mqtt
 power_control:
+  auto_write: false
   enabled: false
   max_power_kw: 500.0
-  auto_write: false
   signals:
-    dso_trip:
-      register: status_word
-      mask: 4
-    safety_alarm:
-      register: alarm_word
-      mask: 1
     dso_limit_pct:
+      max_pct: 100
+      min_pct: 0
       register: active_power_limit_pct
       scale: 0.1
-      min_pct: 0
-      max_pct: 100
+    dso_trip:
+      mask: 4
+      register: status_word
+    safety_alarm:
+      mask: 1
+      register: alarm_word
   writes:
-    remote_enable:
-      register: remote_enable
-      on: 1
-      off: 0
-    active_power_set_w:
-      register: active_power_set_w
-      scale: 1.0
     active_power_limit_pct:
       register: active_power_limit_pct
       scale: 0.1
+    active_power_set_w:
+      register: active_power_set_w
+      scale: 1.0
+    remote_enable:
+      register: remote_enable
+      true: 1
+      false: 0
 prices:
   demo_mode: false
   provider: awattar

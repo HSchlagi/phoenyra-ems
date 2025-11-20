@@ -245,7 +245,11 @@ function handleStateUpdate(state) {
         status_code: state.status_code,
         status_text: state.status_text,
         active_alarms: Array.isArray(state.active_alarms) ? state.active_alarms : [],
-        insulation_kohm: state.insulation_kohm
+        insulation_kohm: state.insulation_kohm,
+        feedin_limit_pct: state.feedin_limit_pct,
+        feedin_limit_mode: state.feedin_limit_mode,
+        grid_max_power_kw: state.grid_max_power_kw,
+        grid_utilization_pct: state.grid_utilization_pct
     };
     
     mergeTelemetryPoint(point);
@@ -371,6 +375,50 @@ function updateKpis(state) {
         const limit = state.dso_limit_pct != null ? `${formatNumber(state.dso_limit_pct)} %` : '—';
         const reason = state.power_limit_reason ? ` (${humanizeLimitReason(state.power_limit_reason)})` : '';
         dsoLimitElem.textContent = `${limit}${reason}`;
+    }
+    
+    // Feed-in Limitation KPIs
+    const feedinLimitElem = document.getElementById('kpi-feedin-limit');
+    const feedinModeElem = document.getElementById('kpi-feedin-mode');
+    if (feedinLimitElem) {
+        if (state.feedin_limit_pct != null) {
+            feedinLimitElem.textContent = `${formatNumber(state.feedin_limit_pct)} %`;
+        } else {
+            feedinLimitElem.textContent = '-- %';
+        }
+    }
+    if (feedinModeElem) {
+        const mode = state.feedin_limit_mode || 'off';
+        const modeText = mode === 'fixed' ? 'Fest' : mode === 'dynamic' ? 'Dynamisch' : 'Aus';
+        feedinModeElem.textContent = `Modus: ${modeText}`;
+    }
+    
+    // Grid Connection KPIs
+    const gridMaxElem = document.getElementById('kpi-grid-max');
+    const gridUtilElem = document.getElementById('kpi-grid-utilization');
+    if (gridMaxElem) {
+        if (state.grid_max_power_kw != null) {
+            gridMaxElem.textContent = `${formatNumber(state.grid_max_power_kw)} kW`;
+        } else {
+            gridMaxElem.textContent = '-- kW';
+        }
+    }
+    if (gridUtilElem) {
+        if (state.grid_utilization_pct != null) {
+            const pct = state.grid_utilization_pct;
+            gridUtilElem.textContent = `${formatNumber(pct)} %`;
+            // Farbcodierung: grün < 50%, gelb 50-80%, rot > 80%
+            if (pct < 50) {
+                gridUtilElem.style.color = '#10b981';
+            } else if (pct < 80) {
+                gridUtilElem.style.color = '#facc15';
+            } else {
+                gridUtilElem.style.color = '#f87171';
+            }
+        } else {
+            gridUtilElem.textContent = '-- %';
+            gridUtilElem.style.color = '#10b981';
+        }
     }
 }
 

@@ -9,12 +9,15 @@ services:
     image: phoenyra-bess-ems:latest
     container_name: phoenyra-bess-ems
     ports:
-      - '5050:8000'
+      - '8080:8000'
     volumes:
       # Persist database data
       - ../data:/app/data
-      # Mount config for easy updates
-      - ../app/config:/app/config:ro
+      # Mount config for easy updates (read-write for settings UI)
+      - ../app/config:/app/config:rw
+      # Mount templates and static files for development (no rebuild needed)
+      - ../app/web/templates:/app/web/templates:ro
+      - ../app/web/static:/app/web/static:ro
       # Optional: mount logs
       - ./logs:/app/logs
     environment:

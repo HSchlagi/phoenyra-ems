@@ -298,9 +298,12 @@ class PowerControlManager:
     def _determine_max_power_kw(
         self, constraints: Dict[str, Any], requested_power_kw: float
     ) -> Optional[float]:
+        """Ermittelt maximale Anlageleistung, berücksichtigt auch grid_connection.max_power_kw"""
+        # Prüfe zuerst explizite max_power_kw aus power_control config
         if self.max_power_kw:
             return abs(float(self.max_power_kw))
 
+        # Fallback: Aus Constraints
         discharge = abs(float(constraints.get("power_discharge_max_kw", 0.0)))
         charge = abs(float(constraints.get("power_charge_max_kw", 0.0)))
         max_kw = max(discharge, charge, abs(requested_power_kw))

@@ -184,8 +184,50 @@ h2 svg {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
 
+.grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
 .grid-cols-5 {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+}
+
+/* Sicherstellen, dass die drei neuen KPIs nebeneinander bleiben */
+#monitoring-advanced-kpis {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+}
+
+#monitoring-advanced-kpis > .card {
+  min-width: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.grid-cols-8 {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.grid-cols-12 {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+@media (max-width: 2000px) {
+  .grid-cols-12 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1200px) {
+  .grid-cols-12 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .grid-cols-12 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .grid-cols-2 {
@@ -201,7 +243,9 @@ h2 svg {
   border: 1px solid rgba(75, 85, 99, 0.5);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   transition: all 0.3s;
+  min-width: 0; /* Wichtig für Grid-Items, damit sie nicht überlaufen */
 }
+
 
 .card:hover {
   border-color: rgba(59, 130, 246, 0.5);

@@ -496,6 +496,55 @@ def api_modbus_profiles():
             if not profile:
                 return jsonify({'success': False, 'error': 'Profile not found'}), 404
             return jsonify({'success': True, 'profile': profile})
+        else:
+            profiles = list_profiles()
+            return jsonify({'success': True, 'profiles': profiles})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/config/feedin_limitation', methods=['GET'])
+def api_feedin_limitation_get():
+    """Get Feed-in Limitation configuration"""
+    try:
+        config = load_config()
+        feedin_config = config.get('feedin_limitation', {})
+        return jsonify({'success': True, 'config': feedin_config})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/config/feedin_limitation', methods=['POST'])
+def api_feedin_limitation_set():
+    """Update Feed-in Limitation configuration"""
+    try:
+        config_data = request.get_json()
+        config = load_config()
+        config['feedin_limitation'] = config_data
+        save_config(config)
+        return jsonify({'success': True, 'message': 'Feed-in limitation configuration updated'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/config/grid_connection', methods=['GET'])
+def api_grid_connection_get():
+    """Get Grid Connection configuration"""
+    try:
+        config = load_config()
+        grid_config = config.get('grid_connection', {})
+        return jsonify({'success': True, 'config': grid_config})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/config/grid_connection', methods=['POST'])
+def api_grid_connection_set():
+    """Update Grid Connection configuration"""
+    try:
+        config_data = request.get_json()
+        config = load_config()
+        config['grid_connection'] = config_data
+        save_config(config)
+        return jsonify({'success': True, 'message': 'Grid connection configuration updated'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
         return jsonify({
             'success': True,

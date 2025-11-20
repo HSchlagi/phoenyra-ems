@@ -16,6 +16,7 @@ from typing import Dict, Any, Optional, List, Tuple
 
 from .strategy_manager import StrategyManager
 from .power_control import PowerControlManager, PowerControlDecision
+from .feedin_limitation import FeedinLimitationManager
 from services.prices.awattar import get_day_ahead
 from services.forecast.simple import pv_forecast, load_forecast
 from services.forecast.prophet_forecaster import ProphetForecaster
@@ -75,6 +76,14 @@ class PlantState:
     dso_trip: bool = False
     safety_alarm: bool = False
     dso_limit_pct: Optional[float] = None
+    
+    # Feed-in Limitation
+    feedin_limit_pct: Optional[float] = None
+    feedin_limit_mode: Optional[str] = None
+    
+    # Grid Connection
+    grid_max_power_kw: Optional[float] = None
+    grid_utilization_pct: Optional[float] = None
 
 
 @dataclass
@@ -137,6 +146,13 @@ class EmsCore:
         
         # Power-Control Manager (DSO / Safety Prioritäten)
         self.power_control_manager = PowerControlManager(cfg.get('power_control', {}))
+        
+        # Feed-in Limitation Manager
+        self.feedin_limitation_manager = FeedinLimitationManager(cfg.get('feedin_limitation', {}))
+        
+        # Grid Connection Limits
+        grid_cfg = cfg.get('grid_connection', {})
+        self.grid_max_power_kw: Optional[float] = grid_cfg.get('max_power_kw')
         
         # Optimierungs-Intervall
         self.optimization_interval_minutes = cfg.get('ems', {}).get('optimization_interval_minutes', 15)
@@ -666,17 +682,49 @@ class EmsCore:
                     self.state.telemetry_source = 'simulation'
                     logger.warning("Live telemetry stale (>120s); reverting to simulated values")
             
-            # Power-Control Entscheidung anwenden
+            # Power-Control Entscheidung anwenden (inkl. Netzanschlussgrenze)
             control_decision = self.power_control_manager.compute_decision(
                 requested_power_kw=requested_setpoint_kw,
                 constraints=self.constraints,
             )
+            
+            # Zusätzliche Netzanschlussgrenze anwenden (statisch)
+            if self.grid_max_power_kw and control_decision.effective_power_kw > 0:
+                # Begrenze Einspeisung (positive Werte = Entladen = Einspeisung)
+                if control_decision.effective_power_kw > self.grid_max_power_kw:
+                    control_decision.effective_power_kw = self.grid_max_power_kw
+                    if control_decision.reason == "plan":
+                        control_decision.reason = "grid_connection_limit"
+                    control_decision.limit_kw = self.grid_max_power_kw
+            
+            # Begrenze auch Netzbezug (negative Werte = Laden = Bezug)
+            if self.grid_max_power_kw and control_decision.effective_power_kw < 0:
+                if abs(control_decision.effective_power_kw) > self.grid_max_power_kw:
+                    control_decision.effective_power_kw = -self.grid_max_power_kw
+                    if control_decision.reason == "plan":
+                        control_decision.reason = "grid_connection_limit"
+                    control_decision.limit_kw = self.grid_max_power_kw
             self.state.setpoint_kw = control_decision.effective_power_kw
             self.state.remote_shutdown_requested = control_decision.shutdown
             self.state.active_power_limit_w = control_decision.active_power_limit_w
             self.state.power_limit_reason = control_decision.reason
             if control_decision.dso_limit_pct is not None:
                 self.state.dso_limit_pct = control_decision.dso_limit_pct
+            
+            # Feed-in Limitation Info
+            feedin_info = self.feedin_limitation_manager.get_limit_info(now)
+            self.state.feedin_limit_pct = feedin_info.get('current_limit_pct')
+            self.state.feedin_limit_mode = feedin_info.get('mode')
+            
+            # Grid Connection Info
+            if self.grid_max_power_kw:
+                self.state.grid_max_power_kw = self.grid_max_power_kw
+                # Berechne Auslastung (basierend auf aktueller Netzleistung)
+                current_grid_power = abs(self.state.p_grid)
+                if current_grid_power > 0:
+                    self.state.grid_utilization_pct = min(100.0, (current_grid_power / self.grid_max_power_kw) * 100.0)
+                else:
+                    self.state.grid_utilization_pct = 0.0
             
             # Simuliere BESS-Reaktion nur wenn keine Live-Daten vorliegen
             if not self._live_telemetry:
@@ -761,7 +809,15 @@ class EmsCore:
                 self.constraints
             )
             
-            # 5. Speichere Fahrplan
+            # 5. Wende Einspeisebegrenzung an
+            if result.schedule and self.feedin_limitation_manager.enabled:
+                pv_forecast = forecast_data.get('pv', [])
+                result.schedule = self.feedin_limitation_manager.apply_limit_to_schedule(
+                    result.schedule,
+                    pv_forecast if pv_forecast else None
+                )
+            
+            # 6. Speichere Fahrplan
             self.current_plan = OptimizationPlan(
                 schedule=result.schedule,
                 strategy_name=result.strategy_name,

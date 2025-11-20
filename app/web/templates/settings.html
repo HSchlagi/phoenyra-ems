@@ -325,6 +325,99 @@
     </div>
 </div>
 
+<!-- Feed-in Limitation & Grid Connection Configuration -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    
+    <!-- Feed-in Limitation -->
+    <div class="card">
+        <h2>
+            <svg class="text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+            </svg>
+            Einspeisebegrenzung
+        </h2>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px;">
+                <input type="checkbox" id="feedin-enabled" onchange="toggleFeedinConfig()" style="width: 16px; height: 16px;">
+                Einspeisebegrenzung aktivieren
+            </label>
+        </div>
+        
+        <div id="feedin-config" style="display: none; opacity: 0; transition: opacity 0.3s ease;">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Modus</label>
+                <select id="feedin-mode" onchange="toggleFeedinMode()" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    <option value="off">Aus</option>
+                    <option value="fixed">Fest (konstant)</option>
+                    <option value="dynamic">Dynamisch (zeitbasiert)</option>
+                </select>
+            </div>
+            
+            <div id="feedin-fixed-config" style="display: none;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Begrenzung (%)</label>
+                <input type="number" id="feedin-fixed-limit" min="0" max="100" step="0.1" value="70.0"
+                       style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            
+            <div id="feedin-dynamic-config" style="display: none;">
+                <p style="color: #94a3b8; font-size: 12px; margin-bottom: 12px;">
+                    Zeitbasierte Regeln (Format: HH:MM-HH:MM)
+                </p>
+                <div id="feedin-rules-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                <button onclick="addFeedinRule()" style="margin-top: 12px; padding: 8px 16px; background: #3b82f6; border: none; border-radius: 6px; color: white; font-size: 13px; cursor: pointer;">
+                    + Regel hinzufügen
+                </button>
+            </div>
+            
+            <div style="margin-top: 16px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #cbd5e1;">
+                    <input type="checkbox" id="feedin-pv-integration" style="width: 16px; height: 16px;">
+                    PV-Prognose-Integration
+                </label>
+            </div>
+            
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button onclick="saveFeedinConfig()" 
+                        style="flex: 1; padding: 10px 16px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    💾 Speichern
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Grid Connection -->
+    <div class="card">
+        <h2>
+            <svg class="text-cyan-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+            </svg>
+            Netzanschlussabsicherung
+        </h2>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Max. Netzanschlussleistung (kW)</label>
+            <input type="number" id="grid-max-power" min="0" step="0.1" value="30.0"
+                   style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            <p style="color: #64748b; font-size: 11px; margin-top: 4px;">Begrenzt sowohl Einspeisung als auch Bezug</p>
+        </div>
+        
+        <div style="margin-top: 16px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #cbd5e1;">
+                <input type="checkbox" id="grid-monitoring-enabled" style="width: 16px; height: 16px;">
+                Monitoring aktivieren
+            </label>
+        </div>
+        
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+            <button onclick="saveGridConfig()" 
+                    style="flex: 1; padding: 10px 16px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer;">
+                💾 Speichern
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentMode = 'auto';
 
@@ -902,7 +995,242 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     loadSettings();
+    loadFeedinConfig();
+    loadGridConfig();
 });
+
+// Feed-in Limitation Functions
+function toggleFeedinConfig() {
+    const enabled = document.getElementById('feedin-enabled').checked;
+    const config = document.getElementById('feedin-config');
+    if (enabled) {
+        config.style.display = 'block';
+        config.offsetHeight;
+        config.style.opacity = '1';
+    } else {
+        config.style.opacity = '0';
+        setTimeout(() => {
+            config.style.display = 'none';
+        }, 300);
+    }
+}
+
+function toggleFeedinMode() {
+    const mode = document.getElementById('feedin-mode').value;
+    const fixedConfig = document.getElementById('feedin-fixed-config');
+    const dynamicConfig = document.getElementById('feedin-dynamic-config');
+    
+    if (mode === 'fixed') {
+        fixedConfig.style.display = 'block';
+        dynamicConfig.style.display = 'none';
+    } else if (mode === 'dynamic') {
+        fixedConfig.style.display = 'none';
+        dynamicConfig.style.display = 'block';
+    } else {
+        fixedConfig.style.display = 'none';
+        dynamicConfig.style.display = 'none';
+    }
+}
+
+function addFeedinRule() {
+    const container = document.getElementById('feedin-rules-container');
+    const ruleDiv = document.createElement('div');
+    ruleDiv.style.display = 'grid';
+    ruleDiv.style.gridTemplateColumns = '1fr 1fr auto';
+    ruleDiv.style.gap = '8px';
+    ruleDiv.style.alignItems = 'center';
+    
+    const timeInput = document.createElement('input');
+    timeInput.type = 'text';
+    timeInput.placeholder = '06:00-18:00';
+    timeInput.style.padding = '8px 12px';
+    timeInput.style.background = 'rgba(55, 65, 81, 0.5)';
+    timeInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+    timeInput.style.borderRadius = '6px';
+    timeInput.style.color = '#fff';
+    timeInput.style.fontSize = '14px';
+    
+    const limitInput = document.createElement('input');
+    limitInput.type = 'number';
+    limitInput.min = '0';
+    limitInput.max = '100';
+    limitInput.step = '0.1';
+    limitInput.placeholder = '70.0';
+    limitInput.style.padding = '8px 12px';
+    limitInput.style.background = 'rgba(55, 65, 81, 0.5)';
+    limitInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+    limitInput.style.borderRadius = '6px';
+    limitInput.style.color = '#fff';
+    limitInput.style.fontSize = '14px';
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '×';
+    deleteBtn.onclick = () => ruleDiv.remove();
+    deleteBtn.style.padding = '8px 12px';
+    deleteBtn.style.background = '#ef4444';
+    deleteBtn.style.border = 'none';
+    deleteBtn.style.borderRadius = '6px';
+    deleteBtn.style.color = 'white';
+    deleteBtn.style.cursor = 'pointer';
+    
+    ruleDiv.appendChild(timeInput);
+    ruleDiv.appendChild(limitInput);
+    ruleDiv.appendChild(deleteBtn);
+    container.appendChild(ruleDiv);
+}
+
+async function loadFeedinConfig() {
+    try {
+        const resp = await fetch('/api/config/feedin_limitation');
+        const data = await resp.json();
+        if (data.success && data.config) {
+            const cfg = data.config;
+            document.getElementById('feedin-enabled').checked = cfg.enabled || false;
+            document.getElementById('feedin-mode').value = cfg.mode || 'off';
+            document.getElementById('feedin-fixed-limit').value = cfg.fixed_limit_pct || 70.0;
+            document.getElementById('feedin-pv-integration').checked = cfg.pv_forecast_integration || false;
+            
+            // Load dynamic rules
+            const container = document.getElementById('feedin-rules-container');
+            container.innerHTML = '';
+            if (cfg.dynamic_rules && Array.isArray(cfg.dynamic_rules)) {
+                cfg.dynamic_rules.forEach(rule => {
+                    const ruleDiv = document.createElement('div');
+                    ruleDiv.style.display = 'grid';
+                    ruleDiv.style.gridTemplateColumns = '1fr 1fr auto';
+                    ruleDiv.style.gap = '8px';
+                    ruleDiv.style.alignItems = 'center';
+                    
+                    const timeInput = document.createElement('input');
+                    timeInput.type = 'text';
+                    timeInput.value = rule.time || '';
+                    timeInput.style.padding = '8px 12px';
+                    timeInput.style.background = 'rgba(55, 65, 81, 0.5)';
+                    timeInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+                    timeInput.style.borderRadius = '6px';
+                    timeInput.style.color = '#fff';
+                    timeInput.style.fontSize = '14px';
+                    
+                    const limitInput = document.createElement('input');
+                    limitInput.type = 'number';
+                    limitInput.min = '0';
+                    limitInput.max = '100';
+                    limitInput.step = '0.1';
+                    limitInput.value = rule.limit_pct || 70.0;
+                    limitInput.style.padding = '8px 12px';
+                    limitInput.style.background = 'rgba(55, 65, 81, 0.5)';
+                    limitInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+                    limitInput.style.borderRadius = '6px';
+                    limitInput.style.color = '#fff';
+                    limitInput.style.fontSize = '14px';
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '×';
+                    deleteBtn.onclick = () => ruleDiv.remove();
+                    deleteBtn.style.padding = '8px 12px';
+                    deleteBtn.style.background = '#ef4444';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.borderRadius = '6px';
+                    deleteBtn.style.color = 'white';
+                    deleteBtn.style.cursor = 'pointer';
+                    
+                    ruleDiv.appendChild(timeInput);
+                    ruleDiv.appendChild(limitInput);
+                    ruleDiv.appendChild(deleteBtn);
+                    container.appendChild(ruleDiv);
+                });
+            }
+            
+            toggleFeedinConfig();
+            toggleFeedinMode();
+        }
+    } catch (err) {
+        console.error('Error loading feedin config:', err);
+    }
+}
+
+async function saveFeedinConfig() {
+    const config = {
+        enabled: document.getElementById('feedin-enabled').checked,
+        mode: document.getElementById('feedin-mode').value,
+        fixed_limit_pct: parseFloat(document.getElementById('feedin-fixed-limit').value) || 70.0,
+        pv_forecast_integration: document.getElementById('feedin-pv-integration').checked,
+        dynamic_rules: []
+    };
+    
+    if (config.mode === 'dynamic') {
+        const container = document.getElementById('feedin-rules-container');
+        const ruleDivs = container.querySelectorAll('div');
+        ruleDivs.forEach(div => {
+            const inputs = div.querySelectorAll('input');
+            if (inputs.length >= 2) {
+                const time = inputs[0].value.trim();
+                const limit = parseFloat(inputs[1].value);
+                if (time && !isNaN(limit)) {
+                    config.dynamic_rules.push({
+                        time: time,
+                        limit_pct: limit
+                    });
+                }
+            }
+        });
+    }
+    
+    try {
+        const resp = await fetch('/api/config/feedin_limitation', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        const data = await resp.json();
+        if (data.success) {
+            alert('✅ Einspeisebegrenzung gespeichert!');
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        alert('❌ Fehler beim Speichern: ' + err.message);
+    }
+}
+
+async function loadGridConfig() {
+    try {
+        const resp = await fetch('/api/config/grid_connection');
+        const data = await resp.json();
+        if (data.success && data.config) {
+            const cfg = data.config;
+            document.getElementById('grid-max-power').value = cfg.max_power_kw || 30.0;
+            document.getElementById('grid-monitoring-enabled').checked = cfg.monitoring?.enabled || false;
+        }
+    } catch (err) {
+        console.error('Error loading grid config:', err);
+    }
+}
+
+async function saveGridConfig() {
+    const config = {
+        max_power_kw: parseFloat(document.getElementById('grid-max-power').value) || 30.0,
+        monitoring: {
+            enabled: document.getElementById('grid-monitoring-enabled').checked
+        }
+    };
+    
+    try {
+        const resp = await fetch('/api/config/grid_connection', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        const data = await resp.json();
+        if (data.success) {
+            alert('✅ Netzanschlusskonfiguration gespeichert!');
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        alert('❌ Fehler beim Speichern: ' + err.message);
+    }
+}
 </script>
 
 {% endblock %}
