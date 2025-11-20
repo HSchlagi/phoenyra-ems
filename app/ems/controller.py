@@ -18,6 +18,7 @@ from .strategy_manager import StrategyManager
 from .power_control import PowerControlManager, PowerControlDecision
 from .feedin_limitation import FeedinLimitationManager
 from services.prices.awattar import get_day_ahead
+from services.grid_tariff import GridTariffService
 from services.forecast.simple import pv_forecast, load_forecast
 from services.forecast.prophet_forecaster import ProphetForecaster
 from services.forecast.weather_forecaster import WeatherForecaster
@@ -149,6 +150,9 @@ class EmsCore:
         
         # Feed-in Limitation Manager
         self.feedin_limitation_manager = FeedinLimitationManager(cfg.get('feedin_limitation', {}))
+        
+        # Grid Tariff Service (Phase 2)
+        self.grid_tariff_service = GridTariffService(cfg.get('grid_tariffs', {}))
         
         # Grid Connection Limits
         grid_cfg = cfg.get('grid_connection', {})
@@ -514,7 +518,9 @@ class EmsCore:
     def get_power_flow(self, minutes: int = 5) -> Dict[str, Any]:
         """Aggregiert Energieflüsse (kWh) für Powerflow-Diagramm"""
         telemetry = self.get_recent_telemetry(minutes=minutes, limit=0)
+        logger.debug(f"Powerflow: {len(telemetry)} Telemetrie-Datenpunkte in den letzten {minutes} Minuten")
         if len(telemetry) < 2:
+            logger.debug(f"Powerflow: Zu wenige Datenpunkte ({len(telemetry)} < 2), benötige mindestens 2 für Berechnung")
             return {
                 'generated_at': datetime.now(timezone.utc).isoformat(),
                 'interval_minutes': minutes,
@@ -526,7 +532,8 @@ class EmsCore:
                     'bess_discharge_kwh': 0.0,
                     'grid_import_kwh': 0.0,
                     'grid_export_kwh': 0.0
-                }
+                },
+                'message': f'Mindestens 2 Telemetrie-Datenpunkte in den letzten {minutes} Minuten benötigt. Aktuell: {len(telemetry)} Datenpunkt(e).'
             }
 
         def _as_float(sample: Dict[str, Any], key: str) -> float:
@@ -808,6 +815,39 @@ class EmsCore:
                 forecast_data,
                 self.constraints
             )
+            
+            # 4.5. Berechne Netzentgelte und ziehe sie vom Gewinn ab (Phase 2)
+            if result.schedule and self.grid_tariff_service.config.enabled:
+                grid_tariff_cost = 0.0
+                for step in result.schedule:
+                    timestamp = step.get('timestamp')
+                    if timestamp:
+                        if isinstance(timestamp, str):
+                            try:
+                                timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                            except:
+                                continue
+                        elif not isinstance(timestamp, datetime):
+                            continue
+                    else:
+                        continue
+                    
+                    # Berechne Netzleistung (positiv = Bezug, negativ = Einspeisung)
+                    p_grid = step.get('p_grid', 0.0)
+                    if p_grid > 0:  # Nur bei Bezug werden Netzentgelte fällig
+                        duration_hours = step.get('duration_hours', 1.0)
+                        grid_tariff_cost += self.grid_tariff_service.calculate_grid_cost(
+                            power_kw=p_grid,
+                            timestamp=timestamp,
+                            duration_hours=duration_hours
+                        )
+                
+                # Ziehe Netzentgelte vom Gewinn ab
+                if grid_tariff_cost > 0:
+                    result.expected_profit = (result.expected_profit or 0.0) - grid_tariff_cost
+                    if result.metadata:
+                        result.metadata['grid_tariff_cost_eur'] = grid_tariff_cost
+                    logger.debug(f"Grid tariff cost: {grid_tariff_cost:.2f} EUR")
             
             # 5. Wende Einspeisebegrenzung an
             if result.schedule and self.feedin_limitation_manager.enabled:

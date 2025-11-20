@@ -58,43 +58,15 @@
     </div>
 </div>
 
-<!-- Zusätzliche KPIs: Einspeisebegrenzung & Netzanschluss - FLEXBOX für horizontale Anordnung -->
-<div style="display: flex; flex-direction: row; gap: 16px; margin-bottom: 24px;" id="monitoring-advanced-kpis">
-    <div class="card" style="flex: 1 1 0; min-width: 0;">
-        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Einspeisebegrenzung</p>
-        <p style="font-size: 26px; font-weight: 700; color: #8b5cf6;" id="kpi-feedin-limit">-- %</p>
-        <p style="color: #6b7280; font-size: 12px;" id="kpi-feedin-mode">Modus: --</p>
-    </div>
-    <div class="card" style="flex: 1 1 0; min-width: 0;">
-        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Netzanschlussgrenze</p>
-        <p style="font-size: 26px; font-weight: 700; color: #06b6d4;" id="kpi-grid-max">-- kW</p>
-        <p style="color: #6b7280; font-size: 12px;">Max. Leistung</p>
-    </div>
-    <div class="card" style="flex: 1 1 0; min-width: 0;">
-        <p style="color: #9ca3af; font-size: 13px; margin-bottom: 8px;">Netzanschlussauslastung</p>
-        <p style="font-size: 26px; font-weight: 700; color: #10b981;" id="kpi-grid-utilization">-- %</p>
-        <p style="color: #6b7280; font-size: 12px;">Aktuelle Auslastung</p>
-    </div>
-</div>
-
 <!-- Charts -->
 <div class="grid grid-cols-2 mb-6">
     <div class="card">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-            <h2 style="margin: 0;">
-                <svg class="text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M3 3a1 1 0 000 2v10a2 2 0 002 2h10a2 2 0 002-2V5a1 1 0 100-2H3zm12 4H5v8h10V7z"></path>
-                </svg>
-                <span id="soc-chart-title">SoC Verlauf</span>
-            </h2>
-            <select id="time-range-selector" onchange="changeTimeRange()" style="padding: 6px 12px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; color: #e2e8f0; font-size: 13px; cursor: pointer;">
-                <option value="60">Letzte 60 min</option>
-                <option value="1440">Tag</option>
-                <option value="10080">Woche</option>
-                <option value="43200">Monat</option>
-                <option value="525600">Jahr</option>
-            </select>
-        </div>
+        <h2>
+            <svg class="text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 3a1 1 0 000 2v10a2 2 0 002 2h10a2 2 0 002-2V5a1 1 0 100-2H3zm12 4H5v8h10V7z"></path>
+            </svg>
+            SoC Verlauf (letzte 60 min)
+        </h2>
         <div style="height: 320px; position: relative;">
             <canvas id="socChart"></canvas>
         </div>
@@ -104,7 +76,7 @@
             <svg class="text-green-500" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm9 6H7a1 1 0 000 2h6a1 1 0 100-2zm0 4H7a1 1 0 000 2h6a1 1 0 100-2zm0-8H7a1 1 0 000 2h6a1 1 0 100-2z"></path>
             </svg>
-            <span id="power-chart-title">Leistungskanäle (kW)</span>
+            Leistungskanäle (kW)
         </h2>
         <div style="height: 320px; position: relative;">
             <canvas id="powerChart"></canvas>
@@ -119,20 +91,11 @@
             <svg class="text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M3 4a1 1 0 011-1h3a1 1 0 011 1v2h4V4a1 1 0 011-1h3a1 1 0 011 1v12a1 1 0 01-1 1h-3a1 1 0 01-1-1v-2H8v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm4 1H5v10h2V5zm8 0h-2v10h2V5z"></path>
             </svg>
-            <span id="powerflow-title">Powerflow</span>
+            Powerflow (letzte 5&nbsp;min)
         </h2>
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <select id="powerflow-time-range-selector" onchange="changePowerflowTimeRange()" style="padding: 6px 12px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; color: #e2e8f0; font-size: 13px; cursor: pointer;">
-                <option value="60">Letzte 60 min</option>
-                <option value="1440">Tag</option>
-                <option value="10080">Woche</option>
-                <option value="43200">Monat</option>
-                <option value="525600">Jahr</option>
-            </select>
-            <button id="powerflow-toggle" type="button" aria-controls="powerflow-body" aria-expanded="true" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.25); color: #e2e8f0; padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;">
-                Einklappen
-            </button>
-        </div>
+        <button id="powerflow-toggle" type="button" aria-controls="powerflow-body" aria-expanded="true" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.25); color: #e2e8f0; padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;">
+            Einklappen
+        </button>
     </div>
     <div id="powerflow-body">
         <div id="powerflow-diagram" style="height: 340px; margin-top: 12px;"></div>
@@ -190,3 +153,4 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/monitoring.js') }}"></script>
 {% endblock %}
+

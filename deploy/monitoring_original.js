@@ -18,194 +18,35 @@ const lastStatusSnapshot = {
 };
 let lastPowerflowFetch = 0;
 let lastPowerflowSignature = '';
-let powerflowWindowMinutes = 60; // Synchronisiert mit Haupt-Zeitbereich
+const powerflowWindowMinutes = 5;
 const powerflowIntervalMs = 30000;
-let currentTimeRangeMinutes = 60;
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeCharts();
     loadTelemetryHistory();
-    // Synchronisiere Powerflow-Zeitbereich mit Haupt-Zeitbereich
-    const powerflowSelector = document.getElementById('powerflow-time-range-selector');
-    if (powerflowSelector) {
-        powerflowWindowMinutes = parseInt(powerflowSelector.value) || 60;
-    }
     refreshPowerflow(true);
     setupSSE();
     setupPowerflowToggle();
-    updateChartTitle();
-    updatePowerflowTitle();
 });
 
 async function loadTelemetryHistory() {
     try {
-        const minutes = currentTimeRangeMinutes;
-        let data = [];
-        
-        // Für längere Zeiträume (> 1 Stunde) verwende History-DB
-        if (minutes > 60) {
-            const hours = Math.ceil(minutes / 60);
-            const resp = await fetch(`/api/history/state?hours=${hours}`);
-            if (resp.ok) {
-                const payload = await resp.json();
-                data = payload.history || [];
-                // Konvertiere History-Format zu Telemetrie-Format
-                data = data.map(h => ({
-                    timestamp: h.timestamp,
-                    soc: h.soc,
-                    p_bess_kw: h.p_bess,
-                    p_pv_kw: h.p_pv,
-                    p_load_kw: h.p_load,
-                    p_grid_kw: h.p_grid,
-                    price: h.price,
-                    voltage_v: null,
-                    temp_c: null
-                }));
-            }
-        } else {
-            // Für kurze Zeiträume verwende Telemetrie-API
-            const resp = await fetch(`/api/monitoring/telemetry?minutes=${minutes}&limit=${maxPoints}`);
-            if (!resp.ok) {
-                throw new Error('HTTP ' + resp.status);
-            }
-            const payload = await resp.json();
-            data = payload.data || [];
-            
-            if (payload.current) {
-                updateKpis(payload.current);
-                updateStatusSection(data.length ? data[data.length - 1] : payload.current);
-            }
+        const resp = await fetch('/api/monitoring/telemetry?minutes=60&limit=' + maxPoints);
+        if (!resp.ok) {
+            throw new Error('HTTP ' + resp.status);
         }
+        const payload = await resp.json();
+        const data = payload.data || [];
         
         telemetryHistory.splice(0, telemetryHistory.length, ...data);
         rebuildChartData();
         
-        // Update Chart Title
-        updateChartTitle();
+        if (payload.current) {
+            updateKpis(payload.current);
+            updateStatusSection(data.length ? data[data.length - 1] : payload.current);
+        }
     } catch (err) {
         console.error('Monitoring history load failed:', err);
-    }
-}
-
-function changeTimeRange() {
-    const selector = document.getElementById('time-range-selector');
-    currentTimeRangeMinutes = parseInt(selector.value);
-    loadTelemetryHistory();
-    
-    // Synchronisiere Powerflow-Zeitbereich bidirektional
-    const powerflowSelector = document.getElementById('powerflow-time-range-selector');
-    if (powerflowSelector && powerflowSelector.value !== currentTimeRangeMinutes.toString()) {
-        powerflowSelector.value = currentTimeRangeMinutes;
-        powerflowWindowMinutes = currentTimeRangeMinutes;
-        updatePowerflowTitle();
-        refreshPowerflow(true);
-    }
-}
-
-function changePowerflowTimeRange() {
-    const selector = document.getElementById('powerflow-time-range-selector');
-    powerflowWindowMinutes = parseInt(selector.value);
-    updatePowerflowTitle();
-    refreshPowerflow(true);
-    
-    // Synchronisiere Haupt-Zeitbereich bidirektional
-    const mainSelector = document.getElementById('time-range-selector');
-    if (mainSelector && mainSelector.value !== powerflowWindowMinutes.toString()) {
-        mainSelector.value = powerflowWindowMinutes;
-        currentTimeRangeMinutes = powerflowWindowMinutes;
-        loadTelemetryHistory();
-        updateChartTitle();
-    }
-}
-
-function updatePowerflowTitle() {
-    const titleElem = document.getElementById('powerflow-title');
-    if (!titleElem) return;
-    
-    let titleText = 'Powerflow';
-    
-    if (powerflowWindowMinutes === 60) {
-        titleText = 'Powerflow (letzte 60 min)';
-    } else if (powerflowWindowMinutes === 1440) {
-        titleText = 'Powerflow (Tag)';
-    } else if (powerflowWindowMinutes === 10080) {
-        titleText = 'Powerflow (Woche)';
-    } else if (powerflowWindowMinutes === 43200) {
-        titleText = 'Powerflow (Monat)';
-    } else if (powerflowWindowMinutes === 525600) {
-        titleText = 'Powerflow (Jahr)';
-    } else {
-        const hours = Math.floor(powerflowWindowMinutes / 60);
-        const days = Math.floor(powerflowWindowMinutes / 1440);
-        if (days > 0) {
-            titleText = `Powerflow (letzte ${days} Tag${days > 1 ? 'e' : ''})`;
-        } else if (hours > 0) {
-            titleText = `Powerflow (letzte ${hours} Stunde${hours > 1 ? 'n' : ''})`;
-        } else {
-            titleText = `Powerflow (letzte ${powerflowWindowMinutes} min)`;
-        }
-    }
-    
-    titleElem.textContent = titleText;
-}
-
-function updateChartTitle() {
-    const titleElem = document.getElementById('soc-chart-title');
-    if (!titleElem) return;
-    
-    let titleText = 'SoC Verlauf';
-    
-    if (currentTimeRangeMinutes === 60) {
-        titleText = 'SoC Verlauf (letzte 60 min)';
-    } else if (currentTimeRangeMinutes === 1440) {
-        titleText = 'SoC Verlauf (Tag)';
-    } else if (currentTimeRangeMinutes === 10080) {
-        titleText = 'SoC Verlauf (Woche)';
-    } else if (currentTimeRangeMinutes === 43200) {
-        titleText = 'SoC Verlauf (Monat)';
-    } else if (currentTimeRangeMinutes === 525600) {
-        titleText = 'SoC Verlauf (Jahr)';
-    } else {
-        const hours = Math.floor(currentTimeRangeMinutes / 60);
-        const days = Math.floor(currentTimeRangeMinutes / 1440);
-        if (days > 0) {
-            titleText = `SoC Verlauf (letzte ${days} Tag${days > 1 ? 'e' : ''})`;
-        } else if (hours > 0) {
-            titleText = `SoC Verlauf (letzte ${hours} Stunde${hours > 1 ? 'n' : ''})`;
-        } else {
-            titleText = `SoC Verlauf (letzte ${currentTimeRangeMinutes} min)`;
-        }
-    }
-    
-    titleElem.textContent = titleText;
-    
-    const powerTitleElem = document.getElementById('power-chart-title');
-    if (powerTitleElem) {
-        let powerTitleText = 'Leistungskanäle';
-        
-        if (currentTimeRangeMinutes === 60) {
-            powerTitleText = 'Leistungskanäle (letzte 60 min)';
-        } else if (currentTimeRangeMinutes === 1440) {
-            powerTitleText = 'Leistungskanäle (Tag)';
-        } else if (currentTimeRangeMinutes === 10080) {
-            powerTitleText = 'Leistungskanäle (Woche)';
-        } else if (currentTimeRangeMinutes === 43200) {
-            powerTitleText = 'Leistungskanäle (Monat)';
-        } else if (currentTimeRangeMinutes === 525600) {
-            powerTitleText = 'Leistungskanäle (Jahr)';
-        } else {
-            const hours = Math.floor(currentTimeRangeMinutes / 60);
-            const days = Math.floor(currentTimeRangeMinutes / 1440);
-            if (days > 0) {
-                powerTitleText = `Leistungskanäle (letzte ${days} Tag${days > 1 ? 'e' : ''})`;
-            } else if (hours > 0) {
-                powerTitleText = `Leistungskanäle (letzte ${hours} Stunde${hours > 1 ? 'n' : ''})`;
-            } else {
-                powerTitleText = `Leistungskanäle (letzte ${currentTimeRangeMinutes} min)`;
-            }
-        }
-        
-        powerTitleElem.textContent = powerTitleText;
     }
 }
 
@@ -341,13 +182,7 @@ function initializeCharts() {
             interaction: { intersect: false, mode: 'nearest' },
             scales: {
                 y: {
-                    ticks: { 
-                        color: textColor, 
-                        callback: (value) => {
-                            if (value === null || value === undefined) return '';
-                            return parseFloat(value).toFixed(2) + ' kW';
-                        }
-                    },
+                    ticks: { color: textColor, callback: (value) => value + ' kW' },
                     grid: { color: gridColor }
                 },
                 x: {
@@ -358,20 +193,6 @@ function initializeCharts() {
             plugins: {
                 legend: {
                     labels: { color: textColor }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += parseFloat(context.parsed.y).toFixed(2) + ' kW';
-                            }
-                            return label;
-                        }
-                    }
                 }
             }
         }
@@ -424,11 +245,7 @@ function handleStateUpdate(state) {
         status_code: state.status_code,
         status_text: state.status_text,
         active_alarms: Array.isArray(state.active_alarms) ? state.active_alarms : [],
-        insulation_kohm: state.insulation_kohm,
-        feedin_limit_pct: state.feedin_limit_pct,
-        feedin_limit_mode: state.feedin_limit_mode,
-        grid_max_power_kw: state.grid_max_power_kw,
-        grid_utilization_pct: state.grid_utilization_pct
+        insulation_kohm: state.insulation_kohm
     };
     
     mergeTelemetryPoint(point);
@@ -509,20 +326,10 @@ async function refreshPowerflow(force = false) {
             throw new Error('HTTP ' + resp.status);
         }
         const payload = await resp.json();
-        console.log('Powerflow data received:', payload);
         renderPowerflow(payload);
         lastPowerflowFetch = now;
     } catch (err) {
         console.error('Failed to refresh powerflow:', err);
-        // Zeige Fehlermeldung im Container
-        const container = document.getElementById('powerflow-diagram');
-        const summaryElem = document.getElementById('powerflow-summary');
-        if (container) {
-            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444;font-size:14px;">Fehler beim Laden der Powerflow-Daten</div>';
-        }
-        if (summaryElem) {
-            summaryElem.textContent = 'Fehler beim Laden der Powerflow-Daten. Bitte Seite neu laden.';
-        }
     }
 }
 
@@ -564,50 +371,6 @@ function updateKpis(state) {
         const limit = state.dso_limit_pct != null ? `${formatNumber(state.dso_limit_pct)} %` : '—';
         const reason = state.power_limit_reason ? ` (${humanizeLimitReason(state.power_limit_reason)})` : '';
         dsoLimitElem.textContent = `${limit}${reason}`;
-    }
-    
-    // Feed-in Limitation KPIs
-    const feedinLimitElem = document.getElementById('kpi-feedin-limit');
-    const feedinModeElem = document.getElementById('kpi-feedin-mode');
-    if (feedinLimitElem) {
-        if (state.feedin_limit_pct != null) {
-            feedinLimitElem.textContent = `${formatNumber(state.feedin_limit_pct)} %`;
-        } else {
-            feedinLimitElem.textContent = '-- %';
-        }
-    }
-    if (feedinModeElem) {
-        const mode = state.feedin_limit_mode || 'off';
-        const modeText = mode === 'fixed' ? 'Fest' : mode === 'dynamic' ? 'Dynamisch' : 'Aus';
-        feedinModeElem.textContent = `Modus: ${modeText}`;
-    }
-    
-    // Grid Connection KPIs
-    const gridMaxElem = document.getElementById('kpi-grid-max');
-    const gridUtilElem = document.getElementById('kpi-grid-utilization');
-    if (gridMaxElem) {
-        if (state.grid_max_power_kw != null) {
-            gridMaxElem.textContent = `${formatNumber(state.grid_max_power_kw)} kW`;
-        } else {
-            gridMaxElem.textContent = '-- kW';
-        }
-    }
-    if (gridUtilElem) {
-        if (state.grid_utilization_pct != null) {
-            const pct = state.grid_utilization_pct;
-            gridUtilElem.textContent = `${formatNumber(pct)} %`;
-            // Farbcodierung: grün < 50%, gelb 50-80%, rot > 80%
-            if (pct < 50) {
-                gridUtilElem.style.color = '#10b981';
-            } else if (pct < 80) {
-                gridUtilElem.style.color = '#facc15';
-            } else {
-                gridUtilElem.style.color = '#f87171';
-            }
-        } else {
-            gridUtilElem.textContent = '-- %';
-            gridUtilElem.style.color = '#10b981';
-        }
     }
 }
 
@@ -751,20 +514,9 @@ function renderPowerflow(flow) {
             Plotly.purge(container);
             container.__powerflowRendered = false;
         }
-        // Prüfe ob es ein Summary gibt (dann gibt es Daten, aber keine Flüsse)
-        const hasSummary = flow && flow.summary;
-        const message = flow && flow.message 
-            ? flow.message
-            : (hasSummary 
-                ? 'Noch keine Energieflüsse ermittelt. Warte auf weitere Telemetrie-Daten...'
-                : 'Noch keine Powerflow-Daten verfügbar. Bitte warten Sie, bis Telemetrie-Daten verfügbar sind (mindestens 2 Datenpunkte in den letzten 5 Minuten).');
-        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#475569;font-size:14px;text-align:center;padding:20px;">${message}</div>`;
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#475569;font-size:14px;">Noch keine Energieflüsse ermittelt.</div>';
         if (summaryElem) {
-            summaryElem.textContent = flow && flow.message 
-                ? flow.message
-                : (hasSummary 
-                    ? 'Warte auf weitere Telemetrie-Daten für Powerflow-Berechnung...'
-                    : 'Noch keine Powerflow-Daten verfügbar.');
+            summaryElem.textContent = 'Noch keine Powerflow-Daten verfügbar.';
         }
         return;
     }

@@ -18,9 +18,20 @@ Phoenyra EMS (Energy Management System) ist ein intelligentes, strategiebasierte
 - ✅ **Analytics-Dashboard:** Historische Performance-Analyse
 - ✅ **Forecasts-Dashboard:** Prognosen und Marktdaten
 - ✅ **Settings-Dashboard:** System-Konfiguration mit MQTT-/Modbus-Assistent & Power-Control Setup
-- ✅ **Monitoring-Dashboard:** Live-Telemetrie (SoC, SoH, Spannung, Temperatur, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarmbits) inkl. DSO-Power-Control-KPI (Normal/Safety/Abschalten mit Limit), Einspeisebegrenzung, Netzanschlussabsicherung & Powerflow-Diagramm
+- ✅ **Monitoring-Dashboard:** Live-Telemetrie (SoC, SoH, Spannung, Temperatur, Leistungsgrenzen, Isolationswiderstand, Statuscode & Alarmbits) inkl. DSO-Power-Control-KPI (Normal/Safety/Abschalten mit Limit), Einspeisebegrenzung, Netzanschlussabsicherung & Powerflow-Diagramm mit Langzeitdaten (60 min, Tag, Woche, Monat, Jahr)
 - ✅ **KPI-Tracking:** Gewinn, Zyklen, SoC, Strategien
 - ✅ **Navigation:** Professionelles UI mit Tabs
+- ✅ **Langzeitdaten:** Zeitbereichsauswahl für Monitoring-Charts und Powerflow (60 min, Tag, Woche, Monat, Jahr)
+
+### **👥 Multiuser & Sicherheit** ⭐ NEU
+- ✅ **Rollenbasierte Zugriffskontrolle:** Admin, Operator, Viewer
+- ✅ **Benutzerverwaltung:** Vollständige CRUD-Operationen für Benutzer
+- ✅ **Registrierung:** Selbstregistrierung für neue Benutzer
+- ✅ **Passwort-Sicherheit:** Scrypt-basiertes Hashing
+- ✅ **Session-Management:** Sichere Session-Verwaltung
+- ✅ **Benachrichtigungen:** System-Alarme und Statusmeldungen (Modbus-Alarme, DSO-Abschaltanweisungen, Sicherheitsalarme, Leistungsbegrenzungen, Einspeisebegrenzungen, Netzanschlussauslastung, Optimierungsfehler)
+- ✅ **Hilfe & Anleitungen:** Umfassende Dokumentation im System
+- ✅ **Benutzerinfo:** Anzeige der eigenen Benutzerdaten im Dropdown-Menü
 
 ### **🔌 Integration & API**
 - ✅ **REST API:** Vollständige API für alle Funktionen
@@ -110,7 +121,8 @@ phoenyra-EMS/
 │   │   │   ├── mqtt_client.py    # MQTT Client
 │   │   │   └── modbus_client.py  # Modbus Client
 │   │   ├── database/
-│   │   │   └── history_db.py     # Historien-Datenbank
+│   │   │   ├── history_db.py     # Historien-Datenbank
+│   │   │   └── user_db.py         # Benutzer-Datenbank
 │   │   ├── forecast/
 │   │   │   ├── simple.py          # Einfache Prognosen
 │   │   │   ├── prophet_forecaster.py  # Prophet ML
@@ -118,6 +130,7 @@ phoenyra-EMS/
 │   │   └── prices/
 │   │       ├── awattar.py         # aWATTar API
 │   │       └── epex.py            # EPEX API
+│   │   └── grid_tariff.py         # Dynamische Netzentgelte
 │   └── web/
 │       ├── app.py                 # Flask App
 │       ├── routes.py              # Web & API Routes
@@ -127,7 +140,11 @@ phoenyra-EMS/
 │       │   ├── monitoring.html
 │       │   ├── analytics.html
 │       │   ├── forecasts.html
-│       │   └── settings.html
+│       │   ├── settings.html
+│       │   ├── users.html         # Benutzerverwaltung (Admin)
+│       │   ├── help.html          # Hilfe & Anleitungen
+│       │   ├── login.html         # Anmeldung
+│       │   └── register.html      # Registrierung
 │       └── static/
 │           ├── css/
 │           │   └── dashboard.css
@@ -163,7 +180,9 @@ Echtzeit-Monitoring und KPI-Überwachung:
 - Server-Sent Events (SSE) für Echtzeit-Updates
 - Automatische Chart-Aktualisierung alle 2 Sekunden
 
-### **2. Monitoring Dashboard (`/monitoring`)**
+### **2. Monitoring Dashboard (`/monitoring`)** ⭐ ERWEITERT
+
+Live-Telemetrie und Langzeit-Analyse:
 
 Live-Telemetrie aus Modbus/MQTT oder Simulation inklusive BMS-Metadaten:
 
@@ -172,8 +191,10 @@ Live-Telemetrie aus Modbus/MQTT oder Simulation inklusive BMS-Metadaten:
 - **Einspeisebegrenzung:** KPI für dynamische Begrenzung der Netzeinspeisung (aktueller Limit-Wert in %, Modus: Aus/Fest/Dynamisch)
 - **Netzanschlussabsicherung:** KPIs für statische Leistungsgrenzen am Netzanschlusspunkt (max. Leistung in kW) und aktuelle Auslastung (in %)
 - **DSO & Power-Control:** KPI für Netzbetreiberstatus (Normal/Safety/Abschalten) inkl. wirksamem Limit (%), Statusgründe und Vorwarnung bei deaktivierter Power-Control
-- **Charts:** SoC-Verlauf & Leistungskanäle (PV, Load, Grid, BESS) der letzten 60 Minuten
-- **Powerflow-Diagramm:** Sankey-Diagramm zur Visualisierung der Energieflüsse (PV, Batterie, Netz, Last) über die letzten 5 Minuten
+- **Langzeitdaten:** Zeitbereichsauswahl für alle Charts (60 min, Tag, Woche, Monat, Jahr)
+- **Charts:** SoC-Verlauf & Leistungskanäle (PV, Load, Grid, BESS) mit historischen Daten basierend auf gewähltem Zeitbereich
+- **Powerflow-Diagramm:** Sankey-Diagramm zur Visualisierung der Energieflüsse (PV, Batterie, Netz, Last) mit Langzeitdaten-Unterstützung (60 min, Tag, Woche, Monat, Jahr)
+- **Synchronisierte Zeitbereiche:** Zeitbereichsauswahl für Charts und Powerflow sind bidirektional synchronisiert
 - **Status & Rohdaten:** Systemstatus-Text + Code, aktive Alarmmeldungen, Datenquelle sowie JSON-View der aktuellen Telemetrie (entprellt)
 - **Telemetrie-Puffer:** autom. Entprellung & Zusammenführung unterschiedlicher Quellen (MQTT/Modbus/Simulation)
 
@@ -216,6 +237,38 @@ System-Konfiguration mit interaktivem Assistenten:
 - **Register-Mapping:** Werte werden direkt aus Profilen übernommen und können überschrieben werden (inkl. Anzeige der Skalierung/Offsets)
 - **Einspeisebegrenzung:** Konfiguration der dynamischen Netzeinspeisungsbegrenzung (Aktivierung, Modus: Fest/Dynamisch, fester Limit-Wert, PV-Integration, zeitbasierte Regeln)
 - **Netzanschlussabsicherung:** Konfiguration statischer Leistungsgrenzen am Netzanschlusspunkt (max. Leistung in kW, Monitoring-Aktivierung)
+- **Dynamische Netzentgelte:** Konfiguration zeitvariabler Netzentgelte (NE3-NE7 Netzebenen, Hochlastfenster, Basis-Tarif)
+
+### **6. Benutzerverwaltung (`/users`)** ⭐ NEU (Admin)
+
+Vollständige Benutzerverwaltung für Administratoren:
+
+- **Benutzerliste:** Übersicht aller registrierten Benutzer
+- **Benutzer erstellen:** Neuen Benutzer mit Rollen (Admin, Operator, Viewer) anlegen
+- **Benutzer bearbeiten:** Persönliche Daten, Rollen, Berechtigungen und Passwörter ändern
+- **Benutzer löschen:** Benutzer entfernen
+- **Rollenbasierte Zugriffskontrolle:** Admin, Operator, Viewer mit unterschiedlichen Berechtigungen
+
+### **7. Hilfe & Anleitungen (`/help`)** ⭐ NEU
+
+Umfassende Systemdokumentation:
+
+- **Dashboard-Übersicht:** Erklärung aller Dashboard-Bereiche
+- **Optimierungsstrategien:** Detaillierte Beschreibung der Strategien
+- **Alarme & Sicherheit:** Informationen zu Alarmen und Sicherheitsfunktionen
+- **Technische Details:** System-Architektur, Optimierung, Sicherheit
+- **Support & Kontakt:** Kontaktinformationen
+
+### **8. Benutzer-Menü** ⭐ NEU
+
+Dropdown-Menü im Navigationsbereich:
+
+- **Benutzerinfo:** Anzeige der eigenen Benutzerdaten (Name, E-Mail, Rolle, Berechtigungen)
+- **Benachrichtigungen:** System-Alarme und Statusmeldungen (Modbus-Alarme, DSO-Abschaltanweisungen, Sicherheitsalarme, Leistungsbegrenzungen, etc.)
+- **Hilfe & Anleitungen:** Link zur Hilfe-Seite
+- **Admin-Dashboard:** Schnellzugriff für Administratoren
+- **Benutzer-Verwaltung:** Link zur Benutzerverwaltung (nur Admin)
+- **Abmelden:** Logout-Funktion
 
 ---
 
@@ -260,6 +313,35 @@ POST /api/modbus/test        # Modbus Verbindung testen
 GET  /api/modbus/profiles    # Verfügbare Modbus-Profile (optional: ?profile=<key> für Details)
 GET/POST /api/feedin_limitation/config    # Einspeisebegrenzung konfigurieren
 GET/POST /api/grid_connection/config      # Netzanschlussabsicherung konfigurieren
+GET/POST /api/config/grid_tariffs        # Dynamische Netzentgelte konfigurieren
+```
+
+### **User Management & Authentication** ⭐ NEU
+
+```bash
+GET  /api/users                    # Liste aller Benutzer (Admin)
+POST /api/users                    # Neuen Benutzer erstellen (Admin)
+PUT  /api/users/<id>               # Benutzer aktualisieren (Admin)
+DELETE /api/users/<id>             # Benutzer löschen (Admin)
+POST /api/users/<id>/password      # Passwort ändern (Admin)
+GET  /api/notifications            # Benachrichtigungen & Alarme
+```
+
+### **Web Pages**
+
+```bash
+GET  /                              # Dashboard
+GET  /monitoring                    # Monitoring & Telemetrie
+GET  /analytics                     # Analytics & Performance
+GET  /forecasts                     # Prognosen & Marktdaten
+GET  /settings                      # System-Einstellungen
+GET  /users                         # Benutzerverwaltung (Admin)
+GET  /help                          # Hilfe & Anleitungen
+GET  /login                         # Anmeldung
+GET  /register                      # Registrierung
+POST /login                         # Anmeldung durchführen
+POST /register                      # Registrierung durchführen
+GET  /logout                        # Abmelden
 ```
 
 ---
@@ -353,6 +435,37 @@ grid_connection:
 
 - Konfiguration über `feedin_limitation` in `app/config/ems.yaml`. Ermöglicht dynamische Begrenzung der Netzeinspeisung basierend auf festen Prozentsätzen (0%, 50%, 70%) oder zeitbasierten Regeln.
 - Implementierung in `app/ems/feedin_limitation.py`: `FeedinLimitationManager` verwaltet die Logik zur Berechnung des aktuellen Limits und passt den Optimierungsplan entsprechend an.
+
+### **Dynamische Netzentgelte** ⭐ NEU
+
+Zeitvariable Netzentgelte für verschiedene Netzebenen (NE3-NE7):
+
+- **Tarifstrukturen:** Vordefinierte Tarife für verschiedene Netzebenen (NE3: Höchstspannung, NE4: Hochspannung, NE5: Mittelspannung, NE6: Niederspannung, NE7: Niederspannung)
+- **Hochlastfenster:** Konfigurierbare Zeitfenster mit Multiplikatoren für erhöhte Tarife
+- **Integration:** Automatische Berücksichtigung in der Optimierungsberechnung
+- **Implementierung:** `app/services/grid_tariff.py` - `GridTariffService` verwaltet Tarifkonfigurationen und berechnet Kosten
+
+### **Multiuser-System** ⭐ NEU
+
+Lokale SQLite-basierte Benutzerverwaltung:
+
+- **Datenbank:** `app/services/database/user_db.py` - `UserDatabase` und `UserManagementService`
+- **Tabellen:** `users` (Benutzerdaten) und `user_sites` (Standort-Zuordnungen)
+- **Rollen:** Admin (Vollzugriff), Operator (Lesen & Schreiben), Viewer (Nur Lesen)
+- **Passwort-Sicherheit:** Scrypt-basiertes Hashing mit `werkzeug.security`
+- **Migration:** Automatische Migration von `users.yaml` zu SQLite-Datenbank
+- **API:** Vollständige CRUD-Operationen für Benutzerverwaltung
+
+### **Langzeitdaten & Historische Analyse** ⭐ NEU
+
+Zeitbereichsauswahl für Monitoring und Powerflow:
+
+- **Zeitbereiche:** 60 min, Tag (24h), Woche (7 Tage), Monat (30 Tage), Jahr (365 Tage)
+- **Datenquellen:** 
+  - Kurze Zeiträume (≤ 60 min): Telemetrie-API (`/api/monitoring/telemetry`)
+  - Längere Zeiträume (> 60 min): History-Datenbank (`/api/history/state`)
+- **Synchronisation:** Bidirektionale Synchronisation zwischen Chart- und Powerflow-Zeitbereich
+- **Powerflow:** Unterstützung für Langzeitdaten mit aggregierten Energieflüssen über längere Perioden
 - **Modi:**
   - `off`: Einspeisebegrenzung deaktiviert
   - `fixed`: Fester Prozentsatz (z.B. 70% der PV-Leistung)

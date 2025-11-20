@@ -52,6 +52,15 @@ phoenyra-EMS/
 
 ## ✨ **Key Features**
 
+### **👥 Multiuser & Sicherheit** ⭐ NEU
+- ✅ **Rollenbasierte Zugriffskontrolle:** Admin, Operator, Viewer
+- ✅ **Benutzerverwaltung:** Vollständige CRUD-Operationen für Benutzer
+- ✅ **Registrierung:** Selbstregistrierung für neue Benutzer
+- ✅ **Passwort-Sicherheit:** Scrypt-basiertes Hashing
+- ✅ **Session-Management:** Sichere Session-Verwaltung
+- ✅ **Benachrichtigungen:** System-Alarme und Statusmeldungen
+- ✅ **Hilfe & Anleitungen:** Umfassende Dokumentation im System
+
 ### **🧠 Intelligenz & Optimierung**
 - ✅ **4 Strategien:** Arbitrage, Peak Shaving, Self-Consumption, Load Balancing
 - ✅ **Linear Programming:** Mathematisch optimale Lösungen mit CVXPY
@@ -111,7 +120,8 @@ docker-compose -f deploy/docker-compose.yml up -d --build
 ### **Dashboard öffnen (Docker):**
 ```
 http://localhost:8080
-Login: admin / admin123
+Login: E-Mail-Adresse / Passwort
+(Standard: admin / admin123 - nach Migration in Datenbank)
 ```
 
 ### **Container-Verwaltung:**
@@ -265,6 +275,30 @@ GET  /api/analytics/summary       # Performance-Zusammenfassung (Parameter: days
 ```bash
 GET/POST /api/feedin_limitation/config    # Einspeisebegrenzung konfigurieren
 GET/POST /api/grid_connection/config      # Netzanschlussabsicherung konfigurieren
+GET/POST /api/config/grid_tariffs        # Dynamische Netzentgelte konfigurieren
+```
+
+### **User Management & Authentication** ⭐ NEU
+```bash
+GET  /api/users                    # Liste aller Benutzer (Admin)
+POST /api/users                    # Neuen Benutzer erstellen (Admin)
+PUT  /api/users/<id>               # Benutzer aktualisieren (Admin)
+DELETE /api/users/<id>             # Benutzer löschen (Admin)
+POST /api/users/<id>/password      # Passwort ändern (Admin)
+GET  /api/notifications            # Benachrichtigungen & Alarme
+```
+
+### **Web Pages**
+```bash
+GET  /                              # Dashboard
+GET  /monitoring                    # Monitoring & Telemetrie
+GET  /analytics                     # Analytics & Performance
+GET  /forecasts                     # Prognosen & Marktdaten
+GET  /settings                      # System-Einstellungen
+GET  /users                         # Benutzerverwaltung (Admin)
+GET  /help                          # Hilfe & Anleitungen
+GET  /login                         # Anmeldung
+GET  /register                      # Registrierung
 ```
 
 ## 🏗️ **Architektur**

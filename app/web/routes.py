@@ -10,6 +10,7 @@ import logging
 import yaml
 import os
 from typing import Dict, Any
+from datetime import datetime, timezone
 
 from config import list_profiles, get_profile
 from services.communication import ModbusConfig, ModbusClient
@@ -42,19 +43,112 @@ def login():
         u = request.form.get('username', '')
         p = request.form.get('password', '')
         
+        # Versuche zuerst Datenbank-Authentifizierung
+        if hasattr(current_app, 'user_db'):
+            if current_app.user_db.verify_password(u, p):
+                user = current_app.user_db.get_user_by_username_or_email(u)
+                if user:
+                    current_app.user_db.update_last_login(user['username'])
+                    session['user'] = {
+                        'name': user['username'],
+                        'id': user['id'],
+                        'role': user.get('role', 'viewer'),
+                        'email': user.get('email')
+                    }
+                    logger.info(f"User logged in (DB): {user['username']} (via: {u})")
+                    return redirect(request.args.get('next') or url_for('web.dashboard'))
+        
+        # Fallback: YAML-Authentifizierung (Rückwärtskompatibilität)
         for usr in current_app.users:
             if usr.get('username') == u and usr.get('password') == p:
                 session['user'] = {
                     'name': u,
                     'role': usr.get('role', 'viewer')
                 }
-                logger.info(f"User logged in: {u}")
+                logger.info(f"User logged in (YAML): {u}")
                 return redirect(request.args.get('next') or url_for('web.dashboard'))
         
         logger.warning(f"Failed login attempt for user: {u}")
         return render_template('login.html', error='Ungültige Anmeldedaten')
     
     return render_template('login.html')
+
+
+@bp.route('/register', methods=['GET', 'POST'])
+def register():
+    """Registrierungs-Seite"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        password_confirm = request.form.get('password_confirm', '')
+        email = request.form.get('email', '').strip()
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        
+        # Validierung
+        errors = []
+        
+        if not username or len(username) < 3:
+            errors.append('Benutzername muss mindestens 3 Zeichen lang sein')
+        
+        if not password or len(password) < 6:
+            errors.append('Passwort muss mindestens 6 Zeichen lang sein')
+        
+        if password != password_confirm:
+            errors.append('Passwörter stimmen nicht überein')
+        
+        if email and '@' not in email:
+            errors.append('Ungültige E-Mail-Adresse')
+        
+        # Prüfe ob Benutzername bereits existiert
+        if hasattr(current_app, 'user_db'):
+            existing = current_app.user_db.get_user_by_username(username)
+            if existing:
+                errors.append('Benutzername existiert bereits')
+        
+        if errors:
+            return render_template('register.html', errors=errors, 
+                                 username=username, email=email, 
+                                 first_name=first_name, last_name=last_name)
+        
+        # Erstelle neuen Benutzer (Standard-Rolle: viewer)
+        try:
+            if hasattr(current_app, 'user_db'):
+                user = current_app.user_db.create_user(
+                    username=username,
+                    password=password,
+                    email=email if email else None,
+                    role='viewer',  # Neue Benutzer erhalten Standard-Rolle
+                    first_name=first_name if first_name else None,
+                    last_name=last_name if last_name else None
+                )
+                
+                logger.info(f"New user registered: {username}")
+                
+                # Automatisch einloggen nach Registrierung
+                session['user'] = {
+                    'name': username,
+                    'id': user['id'],
+                    'role': user.get('role', 'viewer'),
+                    'email': user.get('email')
+                }
+                
+                return redirect(url_for('web.dashboard'))
+            else:
+                return render_template('register.html', 
+                                     errors=['Registrierung momentan nicht verfügbar'])
+        except ValueError as e:
+            return render_template('register.html', errors=[str(e)],
+                                 username=username, email=email,
+                                 first_name=first_name, last_name=last_name)
+        except Exception as e:
+            logger.error(f"Error during registration: {e}")
+            return render_template('register.html', 
+                                 errors=['Fehler bei der Registrierung. Bitte versuchen Sie es erneut.'],
+                                 username=username, email=email,
+                                 first_name=first_name, last_name=last_name)
+    
+    return render_template('register.html')
 
 
 @bp.route('/logout')
@@ -96,6 +190,21 @@ def settings():
 def forecasts():
     """Forecasts & Market Data"""
     return render_template('forecasts.html')
+
+
+@bp.route('/users')
+@login_required
+@role_required('admin')
+def users():
+    """Benutzerverwaltung (nur für Admins)"""
+    return render_template('users.html')
+
+
+@bp.route('/help')
+@login_required
+def help():
+    """Hilfe & Anleitungen"""
+    return render_template('help.html')
 
 
 @bp.route('/monitoring')
@@ -289,6 +398,13 @@ def api_daily_metrics():
     
     try:
         metrics = current_app.ems.history_db.get_daily_metrics(days=days)
+        # Wenn keine Metriken vorhanden, berechne sie für heute
+        if not metrics:
+            try:
+                current_app.ems.history_db.calculate_daily_metrics()
+                metrics = current_app.ems.history_db.get_daily_metrics(days=days)
+            except Exception as calc_err:
+                logger.warning(f"Could not calculate daily metrics: {calc_err}")
         return jsonify({'metrics': metrics, 'count': len(metrics)})
     except Exception as e:
         logger.error(f"Error getting daily metrics: {e}")
@@ -303,6 +419,13 @@ def api_performance_summary():
     
     try:
         summary = current_app.ems.history_db.get_performance_summary(days=days)
+        # Wenn keine Zusammenfassung vorhanden, berechne Metriken für heute
+        if not summary:
+            try:
+                current_app.ems.history_db.calculate_daily_metrics()
+                summary = current_app.ems.history_db.get_performance_summary(days=days)
+            except Exception as calc_err:
+                logger.warning(f"Could not calculate daily metrics: {calc_err}")
         return jsonify(summary)
     except Exception as e:
         logger.error(f"Error getting performance summary: {e}")
@@ -546,9 +669,325 @@ def api_grid_connection_set():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@bp.route('/api/config/grid_tariffs', methods=['GET'])
+@login_required
+def api_grid_tariffs_get():
+    """Get Grid Tariffs configuration"""
+    try:
+        config = load_config()
+        grid_tariffs_config = config.get('grid_tariffs', {})
+        
+        # Hole zusätzliche Info vom Service (falls verfügbar)
+        tariff_info = {}
+        if hasattr(current_app, 'ems') and hasattr(current_app.ems, 'grid_tariff_service'):
+            tariff_info = current_app.ems.grid_tariff_service.get_tariff_info()
+        
         return jsonify({
-            'success': True,
-            'profiles': list_profiles()
+            'success': True, 
+            'config': grid_tariffs_config,
+            'info': tariff_info
         })
     except Exception as e:
+        logger.error(f"Error getting grid tariffs config: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/api/config/grid_tariffs', methods=['POST'])
+@login_required
+@role_required('admin')
+def api_grid_tariffs_set():
+    """Update Grid Tariffs configuration"""
+    try:
+        config_data = request.get_json()
+        config = load_config()
+        config['grid_tariffs'] = config_data
+        
+        # Validiere Konfiguration
+        if config_data.get('enabled'):
+            if not config_data.get('tariff_structure'):
+                return jsonify({'success': False, 'error': 'tariff_structure is required when enabled'}), 400
+        
+        save_config(config)
+        
+        # Aktualisiere Service (falls EMS bereits läuft)
+        try:
+            if hasattr(current_app, 'ems') and hasattr(current_app.ems, 'grid_tariff_service'):
+                from services.grid_tariff import GridTariffService
+                current_app.ems.grid_tariff_service = GridTariffService(config_data)
+                logger.info("Grid tariff service updated")
+        except Exception as service_err:
+            logger.warning(f"Could not update grid tariff service: {service_err}")
+        
+        return jsonify({'success': True, 'message': 'Grid tariffs configuration updated'})
+    except Exception as e:
+        logger.error(f"Error updating grid tariffs config: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# API - User Management
+# ============================================================================
+
+@bp.route('/api/users', methods=['GET'])
+@login_required
+@role_required('admin')
+def api_users_list():
+    """Liste aller Benutzer"""
+    try:
+        if not hasattr(current_app, 'user_db'):
+            return jsonify({'success': False, 'error': 'User database not initialized'}), 500
+        
+        include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
+        users = current_app.user_db.list_users(include_inactive=include_inactive)
+        
+        # Entferne Passwort-Hashes aus der Antwort
+        for user in users:
+            user.pop('password_hash', None)
+        
+        return jsonify({'success': True, 'users': users})
+    except Exception as e:
+        logger.error(f"Error listing users: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/api/users', methods=['POST'])
+@login_required
+@role_required('admin')
+def api_users_create():
+    """Erstellt neuen Benutzer"""
+    try:
+        if not hasattr(current_app, 'user_db'):
+            return jsonify({'success': False, 'error': 'User database not initialized'}), 500
+        
+        data = request.get_json()
+        
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
+        role = data.get('role', 'viewer')
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        
+        if not username or not password:
+            return jsonify({'success': False, 'error': 'username and password are required'}), 400
+        
+        if role not in ['admin', 'operator', 'viewer']:
+            return jsonify({'success': False, 'error': 'Invalid role'}), 400
+        
+        user = current_app.user_db.create_user(
+            username=username,
+            password=password,
+            email=email,
+            role=role,
+            first_name=first_name,
+            last_name=last_name
+        )
+        
+        # Entferne Passwort-Hash
+        user.pop('password_hash', None)
+        
+        return jsonify({'success': True, 'user': user})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/api/users/<int:user_id>', methods=['PUT'])
+@login_required
+@role_required('admin')
+def api_users_update(user_id):
+    """Aktualisiert Benutzer"""
+    try:
+        if not hasattr(current_app, 'user_db'):
+            return jsonify({'success': False, 'error': 'User database not initialized'}), 500
+        
+        data = request.get_json()
+        
+        # Prüfe ob Benutzer existiert
+        existing = current_app.user_db.get_user_by_id(user_id)
+        if not existing:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        # Validiere Rolle
+        if 'role' in data and data['role'] not in ['admin', 'operator', 'viewer']:
+            return jsonify({'success': False, 'error': 'Invalid role'}), 400
+        
+        # Konvertiere Boolean zu Integer für is_active und email_verified
+        if 'is_active' in data:
+            data['is_active'] = 1 if data['is_active'] else 0
+        if 'email_verified' in data:
+            data['email_verified'] = 1 if data['email_verified'] else 0
+        
+        user = current_app.user_db.update_user(user_id, **data)
+        
+        # Entferne Passwort-Hash
+        user.pop('password_hash', None)
+        
+        return jsonify({'success': True, 'user': user})
+    except Exception as e:
+        logger.error(f"Error updating user: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/api/users/<int:user_id>', methods=['DELETE'])
+@login_required
+@role_required('admin')
+def api_users_delete(user_id):
+    """Löscht Benutzer"""
+    try:
+        if not hasattr(current_app, 'user_db'):
+            return jsonify({'success': False, 'error': 'User database not initialized'}), 500
+        
+        # Verhindere Löschung des eigenen Accounts
+        current_user_id = session.get('user', {}).get('id')
+        if current_user_id == user_id:
+            return jsonify({'success': False, 'error': 'Cannot delete your own account'}), 400
+        
+        # Prüfe ob Benutzer existiert
+        existing = current_app.user_db.get_user_by_id(user_id)
+        if not existing:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        deleted = current_app.user_db.delete_user(user_id)
+        
+        if deleted:
+            return jsonify({'success': True, 'message': 'User deleted'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to delete user'}), 500
+    except Exception as e:
+        logger.error(f"Error deleting user: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/api/users/<int:user_id>/password', methods=['POST'])
+@login_required
+@role_required('admin')
+def api_users_change_password(user_id):
+    """Ändert Passwort eines Benutzers"""
+    try:
+        if not hasattr(current_app, 'user_db'):
+            return jsonify({'success': False, 'error': 'User database not initialized'}), 500
+        
+        data = request.get_json()
+        new_password = data.get('password')
+        
+        if not new_password:
+            return jsonify({'success': False, 'error': 'password is required'}), 400
+        
+        # Prüfe ob Benutzer existiert
+        existing = current_app.user_db.get_user_by_id(user_id)
+        if not existing:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        current_app.user_db.change_password(user_id, new_password)
+        
+        return jsonify({'success': True, 'message': 'Password changed'})
+    except Exception as e:
+        logger.error(f"Error changing password: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# API - Notifications
+# ============================================================================
+
+@bp.route('/api/notifications', methods=['GET'])
+@login_required
+def api_notifications():
+    """Gibt aktuelle Benachrichtigungen und Alarme zurück"""
+    try:
+        if not hasattr(current_app, 'ems') or current_app.ems is None:
+            return jsonify({
+                'success': True,
+                'notifications': [],
+                'count': 0,
+                'message': 'EMS not initialized'
+            })
+        
+        state = current_app.ems.to_dict()
+        notifications = []
+        
+        # Modbus-Alarme
+        if state.get('alarm') and state.get('active_alarms'):
+            for alarm in state.get('active_alarms', []):
+                notifications.append({
+                    'severity': 'critical',
+                    'title': 'Modbus Alarm',
+                    'message': f'Alarm erkannt: {alarm}',
+                    'source': 'Modbus/BMS',
+                    'timestamp': state.get('timestamp', datetime.now(timezone.utc).isoformat())
+                })
+        
+        # DSO-Trip
+        if state.get('dso_trip'):
+            notifications.append({
+                'severity': 'critical',
+                'title': 'DSO-Abschaltanweisung',
+                'message': 'Netzbetreiber hat eine Abschaltanweisung erteilt. System wird in sicheren Zustand versetzt.',
+                'source': 'DSO/Power Control',
+                'timestamp': state.get('timestamp', datetime.now(timezone.utc).isoformat())
+            })
+        
+        # Safety Alarm
+        if state.get('safety_alarm'):
+            notifications.append({
+                'severity': 'critical',
+                'title': 'Sicherheitsalarm',
+                'message': 'Sicherheitsalarm erkannt. Bitte Systemzustand prüfen.',
+                'source': 'Safety System',
+                'timestamp': state.get('timestamp', datetime.now(timezone.utc).isoformat())
+            })
+        
+        # Power Limit Warnung
+        if state.get('power_limit_reason'):
+            notifications.append({
+                'severity': 'warning',
+                'title': 'Leistungsbegrenzung aktiv',
+                'message': f'Leistung begrenzt: {state.get("power_limit_reason", "Unbekannter Grund")}',
+                'source': 'Power Control',
+                'timestamp': state.get('timestamp', datetime.now(timezone.utc).isoformat())
+            })
+        
+        # Feed-in Limitation Info
+        if state.get('feedin_limit_pct') and state.get('feedin_limit_mode') != 'off':
+            notifications.append({
+                'severity': 'info',
+                'title': 'Einspeisebegrenzung aktiv',
+                'message': f'Einspeisung auf {state.get("feedin_limit_pct", 0)}% begrenzt (Modus: {state.get("feedin_limit_mode", "unknown")})',
+                'source': 'Feed-in Limitation',
+                'timestamp': state.get('timestamp', datetime.now(timezone.utc).isoformat())
+            })
+        
+        # Grid Utilization Warnung
+        if state.get('grid_utilization_pct') and state.get('grid_utilization_pct', 0) > 90:
+            notifications.append({
+                'severity': 'warning',
+                'title': 'Hohe Netzanschlussauslastung',
+                'message': f'Netzanschluss zu {state.get("grid_utilization_pct", 0):.1f}% ausgelastet',
+                'source': 'Grid Connection',
+                'timestamp': state.get('timestamp', datetime.now(timezone.utc).isoformat())
+            })
+        
+        # Optimierungs-Status
+        if state.get('optimization_status') == 'failed':
+            notifications.append({
+                'severity': 'warning',
+                'title': 'Optimierung fehlgeschlagen',
+                'message': 'Die letzte Optimierung konnte nicht durchgeführt werden. Fallback-Strategie aktiv.',
+                'source': 'Optimization',
+                'timestamp': state.get('timestamp', datetime.now(timezone.utc).isoformat())
+            })
+        
+        # Sortiere nach Schweregrad (critical > warning > info > success)
+        severity_order = {'critical': 0, 'warning': 1, 'info': 2, 'success': 3}
+        notifications.sort(key=lambda x: severity_order.get(x.get('severity', 'info'), 3))
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifications,
+            'count': len(notifications)
+        })
+    except Exception as e:
+        logger.error(f"Error getting notifications: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500

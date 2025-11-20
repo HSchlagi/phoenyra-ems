@@ -33,6 +33,15 @@ grid_connection:
   max_power_kw: 30
   monitoring:
     enabled: true
+grid_tariffs:
+  base_tariff_eur_per_kw: 0.15
+  enabled: true
+  high_load_windows:
+  - end: '20:00'
+    multiplier: 1.5
+    start: '17:00'
+  tariff_structure: NE7
+  time_variable: true
 modbus:
   connection_type: tcp
   enabled: false

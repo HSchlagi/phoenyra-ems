@@ -43,6 +43,44 @@ body {
   justify-content: center;
   margin-bottom: 20px;
   box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Smooth fade-in for logo once loaded */
+body:not(.loaded) .logo-icon {
+  opacity: 0;
+}
+
+body.loaded .logo-icon {
+  opacity: 1;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.logo-fallback {
+  width: 70px;
+  height: 70px;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.logo-image[style*="display: none"] ~ .logo-fallback {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .logo h1 {
@@ -160,4 +198,14 @@ button:active {
   margin: 4px 0;
 }
 
+a {
+  color: #60a5fa;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: #3b82f6;
+  transform: translateY(-2px);
+}
 

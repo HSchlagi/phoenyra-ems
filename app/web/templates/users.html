@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+
+{% block title %}Benutzerverwaltung - Phoenyra EMS{% endblock %}
+
+{% block content %}
+<div>
+    <h1>
+        <svg fill="currentColor" viewBox="0 0 20 20" style="width: 28px; height: 28px; margin-right: 12px;">
+            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+        </svg>
+        Benutzerverwaltung
+    </h1>
+    <p class="subtitle">Verwalten Sie Benutzerkonten, Rollen und Berechtigungen</p>
+    
+    <div class="card" style="margin-top: 24px;">
+        <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <h2>
+                <svg class="text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                </svg>
+                Benutzer
+            </h2>
+            <button onclick="showAddUserModal()" 
+                    style="padding: 10px 16px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <svg fill="currentColor" viewBox="0 0 20 20" style="width: 16px; height: 16px;">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                </svg>
+                Benutzer hinzufügen
+            </button>
+        </div>
+        
+        <div id="users-list" style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="padding: 16px; text-align: center; color: #94a3b8;">
+                Lade Benutzer...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="edit-user-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; isolation: isolate;">
+    <div style="background: #1e293b; border-radius: 12px; padding: 24px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto; margin: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; color: #e2e8f0; font-size: 20px;">Benutzerdaten und Berechtigungen ändern</h2>
+            <button onclick="closeEditUserModal()" style="background: none; border: none; color: #94a3b8; font-size: 28px; cursor: pointer; line-height: 1;">×</button>
+        </div>
+        
+        <form id="edit-user-form" onsubmit="saveUserChanges(event)">
+            <input type="hidden" id="edit-user-id">
+            
+            <!-- Persönliche Daten -->
+            <div style="margin-bottom: 24px;">
+                <h3 style="color: #e2e8f0; font-size: 16px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid rgba(71, 85, 105, 0.5);">Persönliche Daten</h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Vorname</label>
+                        <input type="text" id="edit-user-first-name"
+                               style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Nachname</label>
+                        <input type="text" id="edit-user-last-name"
+                               style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Benutzername</label>
+                    <input type="text" id="edit-user-username" readonly
+                           style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.3); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #94a3b8; font-size: 14px; cursor: not-allowed;">
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">E-Mail</label>
+                    <input type="email" id="edit-user-email"
+                           style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Firma</label>
+                        <input type="text" id="edit-user-company"
+                               style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Telefon</label>
+                        <input type="text" id="edit-user-phone"
+                               style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Berechtigungen -->
+            <div style="margin-bottom: 24px;">
+                <h3 style="color: #e2e8f0; font-size: 16px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid rgba(71, 85, 105, 0.5);">Berechtigungen</h3>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Rolle</label>
+                    <select id="edit-user-role"
+                            style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                        <option value="viewer">Viewer - Nur Lesen</option>
+                        <option value="operator">Operator - Lesen & Schreiben</option>
+                        <option value="admin">Admin - Vollzugriff auf alle Funktionen des Systems</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 24px;">
+                    <label style="display: flex; align-items: center; gap: 8px; color: #cbd5e1; font-size: 14px; cursor: pointer;">
+                        <input type="checkbox" id="edit-user-is-active" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span>Account aktiv</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; color: #cbd5e1; font-size: 14px; cursor: pointer;">
+                        <input type="checkbox" id="edit-user-email-verified" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span>E-Mail verifiziert</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Passwort ändern -->
+            <div style="margin-bottom: 24px;">
+                <h3 style="color: #e2e8f0; font-size: 16px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid rgba(71, 85, 105, 0.5);">Passwort ändern</h3>
+                <p style="color: #94a3b8; font-size: 12px; margin-bottom: 16px;">Lassen Sie die Passwort-Felder leer, wenn Sie das Passwort nicht ändern möchten.</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Neues Passwort</label>
+                        <input type="password" id="edit-user-password" placeholder="Leer lassen für keine Änderung"
+                               style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Passwort bestätigen</label>
+                        <input type="password" id="edit-user-password-confirm" placeholder="Leer lassen für keine Änderung"
+                               style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Benutzer-Informationen (Read-only) -->
+            <div style="margin-bottom: 24px; padding: 16px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; border: 1px solid rgba(71, 85, 105, 0.3);">
+                <h3 style="color: #e2e8f0; font-size: 16px; font-weight: 600; margin-bottom: 16px;">Benutzer-Informationen</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; color: #94a3b8; font-size: 13px;">
+                    <div><strong style="color: #cbd5e1;">Erstellt am:</strong> <span id="edit-user-created-at">-</span></div>
+                    <div><strong style="color: #cbd5e1;">Letzter Login:</strong> <span id="edit-user-last-login">-</span></div>
+                    <div><strong style="color: #cbd5e1;">Aktuelle Rolle:</strong> <span id="edit-user-current-role">-</span></div>
+                    <div><strong style="color: #cbd5e1;">Status:</strong> <span id="edit-user-status">-</span></div>
+                </div>
+            </div>
+            
+            <!-- Buttons -->
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="button" onclick="closeEditUserModal()" 
+                        style="flex: 1; padding: 12px 16px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #e2e8f0; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg fill="currentColor" viewBox="0 0 20 20" style="width: 16px; height: 16px;"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
+                    Zurück zur Benutzerliste
+                </button>
+                <button type="button" onclick="closeEditUserModal()" 
+                        style="padding: 12px 16px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #e2e8f0; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    Abbrechen
+                </button>
+                <button type="submit" 
+                        style="flex: 1; padding: 12px 16px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    Änderungen speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div id="add-user-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; isolation: isolate;">
+    <div style="background: #1e293b; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; color: #e2e8f0;">Neuen Benutzer hinzufügen</h2>
+            <button onclick="closeAddUserModal()" style="background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer;">×</button>
+        </div>
+        
+        <form id="add-user-form" onsubmit="saveNewUser(event)">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Benutzername *</label>
+                <input type="text" id="new-user-username" required
+                       style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">E-Mail</label>
+                <input type="email" id="new-user-email"
+                       style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Passwort *</label>
+                <input type="password" id="new-user-password" required minlength="6"
+                       style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Rolle *</label>
+                <select id="new-user-role" required
+                        style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    <option value="viewer">Viewer (Nur Lesen)</option>
+                    <option value="operator">Operator (Lesen & Schreiben)</option>
+                    <option value="admin">Admin (Vollzugriff)</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 8px; margin-top: 20px;">
+                <button type="button" onclick="closeAddUserModal()" 
+                        style="flex: 1; padding: 10px 16px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 8px; color: #e2e8f0; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    Abbrechen
+                </button>
+                <button type="submit" 
+                        style="flex: 1; padding: 10px 16px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    💾 Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// User Management Functions
+async function loadUsers() {
+    try {
+        const resp = await fetch('/api/users');
+        if (!resp.ok) {
+            if (resp.status === 403) {
+                document.getElementById('users-list').innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8;">Keine Berechtigung für Benutzerverwaltung</div>';
+                return;
+            }
+            throw new Error('HTTP ' + resp.status);
+        }
+        const data = await resp.json();
+        if (data.success && data.users) {
+            renderUsersList(data.users);
+        }
+    } catch (err) {
+        console.error('Error loading users:', err);
+        document.getElementById('users-list').innerHTML = '<div style="padding: 16px; text-align: center; color: #ef4444;">Fehler beim Laden der Benutzer</div>';
+    }
+}
+
+function renderUsersList(users) {
+    const container = document.getElementById('users-list');
+    if (!users || users.length === 0) {
+        container.innerHTML = '<div style="padding: 16px; text-align: center; color: #94a3b8;">Keine Benutzer vorhanden</div>';
+        return;
+    }
+    
+    container.innerHTML = users.map(user => {
+        const roleColors = {
+            'admin': '#ef4444',
+            'operator': '#3b82f6',
+            'viewer': '#10b981'
+        };
+        const roleNames = {
+            'admin': 'Admin',
+            'operator': 'Operator',
+            'viewer': 'Viewer'
+        };
+        const roleColor = roleColors[user.role] || '#94a3b8';
+        const roleName = roleNames[user.role] || user.role;
+        const isActive = user.is_active !== 0;
+        
+        return `
+            <div style="padding: 16px; background: rgba(15, 23, 42, 0.65); border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.18);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <strong style="color: #e2e8f0; font-size: 16px;">${user.username}</strong>
+                            <span style="padding: 4px 8px; background: ${roleColor}20; color: ${roleColor}; border-radius: 4px; font-size: 11px; font-weight: 600;">${roleName}</span>
+                            ${!isActive ? '<span style="padding: 4px 8px; background: #64748b20; color: #64748b; border-radius: 4px; font-size: 11px;">Inaktiv</span>' : ''}
+                        </div>
+                        ${user.email ? `<div style="color: #94a3b8; font-size: 13px;">${user.email}</div>` : ''}
+                        ${user.first_name || user.last_name ? `<div style="color: #94a3b8; font-size: 13px;">${user.first_name || ''} ${user.last_name || ''}</div>` : ''}
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="editUser(${user.id})" 
+                                style="padding: 6px 12px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5); border-radius: 6px; color: #60a5fa; font-size: 12px; cursor: pointer;">
+                            Bearbeiten
+                        </button>
+                        <button onclick="deleteUser(${user.id}, '${user.username.replace(/'/g, "\\'")}')" 
+                                style="padding: 6px 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); border-radius: 6px; color: #f87171; font-size: 12px; cursor: pointer;">
+                            Löschen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function showAddUserModal() {
+    document.getElementById('add-user-modal').style.display = 'flex';
+    document.getElementById('add-user-form').reset();
+}
+
+function closeAddUserModal() {
+    document.getElementById('add-user-modal').style.display = 'none';
+}
+
+async function saveNewUser(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('new-user-username').value.trim();
+    const email = document.getElementById('new-user-email').value.trim();
+    const password = document.getElementById('new-user-password').value;
+    const role = document.getElementById('new-user-role').value;
+    
+    try {
+        const resp = await fetch('/api/users', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: username,
+                email: email || null,
+                password: password,
+                role: role
+            })
+        });
+        
+        const data = await resp.json();
+        if (data.success) {
+            alert('✅ Benutzer erfolgreich erstellt!');
+            closeAddUserModal();
+            loadUsers();
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        alert('❌ Fehler beim Erstellen: ' + err.message);
+    }
+}
+
+async function editUser(userId) {
+    try {
+        const resp = await fetch(`/api/users?include_inactive=true`);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.error || 'Fehler beim Laden');
+        
+        const user = data.users.find(u => u.id === userId);
+        if (!user) {
+            alert('❌ Benutzer nicht gefunden');
+            return;
+        }
+        
+        // Fülle Formular
+        document.getElementById('edit-user-id').value = user.id;
+        document.getElementById('edit-user-username').value = user.username || '';
+        document.getElementById('edit-user-email').value = user.email || '';
+        document.getElementById('edit-user-first-name').value = user.first_name || '';
+        document.getElementById('edit-user-last-name').value = user.last_name || '';
+        document.getElementById('edit-user-company').value = user.company || '';
+        document.getElementById('edit-user-phone').value = user.phone || '';
+        document.getElementById('edit-user-role').value = user.role || 'viewer';
+        document.getElementById('edit-user-is-active').checked = user.is_active !== 0;
+        document.getElementById('edit-user-email-verified').checked = user.email_verified === 1;
+        document.getElementById('edit-user-password').value = '';
+        document.getElementById('edit-user-password-confirm').value = '';
+        
+        // Benutzer-Informationen
+        const createdDate = user.created_at ? new Date(user.created_at).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-';
+        const lastLoginDate = user.last_login ? new Date(user.last_login).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'Nie';
+        const roleNames = {'admin': 'Admin', 'operator': 'Operator', 'viewer': 'Viewer'};
+        const status = user.is_active !== 0 ? '<span style="padding: 4px 8px; background: #10b98120; color: #10b981; border-radius: 12px; font-size: 11px; font-weight: 600;">Aktiv</span>' : '<span style="padding: 4px 8px; background: #64748b20; color: #64748b; border-radius: 12px; font-size: 11px; font-weight: 600;">Inaktiv</span>';
+        
+        document.getElementById('edit-user-created-at').innerHTML = createdDate;
+        document.getElementById('edit-user-last-login').innerHTML = lastLoginDate;
+        document.getElementById('edit-user-current-role').innerHTML = roleNames[user.role] || user.role;
+        document.getElementById('edit-user-status').innerHTML = status;
+        
+        // Zeige Modal
+        document.getElementById('edit-user-modal').style.display = 'flex';
+    } catch (err) {
+        alert('❌ Fehler beim Laden der Benutzerdaten: ' + err.message);
+    }
+}
+
+function closeEditUserModal() {
+    document.getElementById('edit-user-modal').style.display = 'none';
+    document.getElementById('edit-user-form').reset();
+}
+
+async function saveUserChanges(event) {
+    event.preventDefault();
+    
+    const userId = parseInt(document.getElementById('edit-user-id').value);
+    const password = document.getElementById('edit-user-password').value;
+    const passwordConfirm = document.getElementById('edit-user-password-confirm').value;
+    
+    // Passwort-Validierung
+    if (password || passwordConfirm) {
+        if (password !== passwordConfirm) {
+            alert('❌ Passwörter stimmen nicht überein');
+            return;
+        }
+        if (password.length > 0 && password.length < 6) {
+            alert('❌ Passwort muss mindestens 6 Zeichen lang sein');
+            return;
+        }
+    }
+    
+    try {
+        // Aktualisiere Benutzerdaten
+        const updateData = {
+            email: document.getElementById('edit-user-email').value.trim() || null,
+            first_name: document.getElementById('edit-user-first-name').value.trim() || null,
+            last_name: document.getElementById('edit-user-last-name').value.trim() || null,
+            company: document.getElementById('edit-user-company').value.trim() || null,
+            phone: document.getElementById('edit-user-phone').value.trim() || null,
+            role: document.getElementById('edit-user-role').value,
+            is_active: document.getElementById('edit-user-is-active').checked ? 1 : 0,
+            email_verified: document.getElementById('edit-user-email-verified').checked ? 1 : 0
+        };
+        
+        const resp = await fetch(`/api/users/${userId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(updateData)
+        });
+        
+        const data = await resp.json();
+        if (!data.success) {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+            return;
+        }
+        
+        // Passwort ändern (falls angegeben)
+        if (password) {
+            const pwdResp = await fetch(`/api/users/${userId}/password`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password: password})
+            });
+            
+            const pwdData = await pwdResp.json();
+            if (!pwdData.success) {
+                alert('⚠️ Benutzerdaten aktualisiert, aber Passwort-Änderung fehlgeschlagen: ' + (pwdData.error || 'Unbekannter Fehler'));
+                loadUsers();
+                closeEditUserModal();
+                return;
+            }
+        }
+        
+        alert('✅ Benutzer erfolgreich aktualisiert!');
+        loadUsers();
+        closeEditUserModal();
+    } catch (err) {
+        alert('❌ Fehler beim Speichern: ' + err.message);
+    }
+}
+
+async function deleteUser(userId, username) {
+    if (!confirm(`Möchten Sie den Benutzer "${username}" wirklich löschen?`)) {
+        return;
+    }
+    
+    try {
+        const resp = await fetch(`/api/users/${userId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await resp.json();
+        if (data.success) {
+            alert('✅ Benutzer gelöscht!');
+            loadUsers();
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        alert('❌ Fehler beim Löschen: ' + err.message);
+    }
+}
+
+// Lade Benutzer beim Seitenaufruf
+document.addEventListener('DOMContentLoaded', function() {
+    loadUsers();
+});
+</script>
+
+{% endblock %}
+

@@ -416,6 +416,68 @@
             </button>
         </div>
     </div>
+    
+    <!-- Grid Tariffs -->
+    <div class="card">
+        <h2>
+            <svg class="text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+            </svg>
+            Dynamische Netzentgelte
+        </h2>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px;">
+                <input type="checkbox" id="grid-tariffs-enabled" onchange="toggleGridTariffsConfig()" style="width: 16px; height: 16px;">
+                Netzentgelte aktivieren
+            </label>
+        </div>
+        
+        <div id="grid-tariffs-config" style="display: none; opacity: 0; transition: opacity 0.3s ease;">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Tarifstruktur</label>
+                <select id="grid-tariffs-structure" style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+                    <option value="NE3">NE3 – Hochspannungsnetz (110 kV)</option>
+                    <option value="NE4">NE4 – Mittelspannungsnetz (10–30 kV)</option>
+                    <option value="NE5">NE5 – Niederspannungs-Verteilnetz (400/230 V)</option>
+                    <option value="NE6">NE6 – Kundeninstallation / Hausanschluss (400/230 V)</option>
+                    <option value="NE7">NE7 – Endverbraucherebene (400/230 V)</option>
+                    <option value="custom">Benutzerdefiniert</option>
+                </select>
+            </div>
+            
+            <div id="grid-tariffs-custom-config" style="display: none; margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Basis-Tarif (EUR/kW)</label>
+                <input type="number" id="grid-tariffs-base-tariff" min="0" step="0.01" value="0.15"
+                       style="width: 100%; padding: 8px 12px; background: rgba(55, 65, 81, 0.5); border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 6px; color: #fff; font-size: 14px;">
+            </div>
+            
+            <div style="margin-top: 16px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #cbd5e1;">
+                    <input type="checkbox" id="grid-tariffs-time-variable" onchange="toggleGridTariffsTimeVariable()" style="width: 16px; height: 16px;">
+                    Zeitvariable Tarife (Hochlastzeitfenster)
+                </label>
+            </div>
+            
+            <div id="grid-tariffs-windows-config" style="display: none; margin-top: 16px;">
+                <p style="color: #94a3b8; font-size: 12px; margin-bottom: 12px;">
+                    Hochlastzeitfenster (Format: HH:MM-HH:MM, Multiplikator)
+                </p>
+                <div id="grid-tariffs-windows-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                <button onclick="addGridTariffWindow()" style="margin-top: 12px; padding: 8px 16px; background: #3b82f6; border: none; border-radius: 6px; color: white; font-size: 13px; cursor: pointer;">
+                    + Zeitfenster hinzufügen
+                </button>
+            </div>
+            
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button onclick="saveGridTariffsConfig()" 
+                        style="flex: 1; padding: 10px 16px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer;">
+                    💾 Speichern
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -997,6 +1059,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSettings();
     loadFeedinConfig();
     loadGridConfig();
+    loadGridTariffsConfig();
 });
 
 // Feed-in Limitation Functions
@@ -1228,6 +1291,265 @@ async function saveGridConfig() {
             alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
         }
     } catch (err) {
+        alert('❌ Fehler beim Speichern: ' + err.message);
+    }
+}
+
+// Grid Tariffs Functions
+function toggleGridTariffsConfig() {
+    const enabled = document.getElementById('grid-tariffs-enabled').checked;
+    const config = document.getElementById('grid-tariffs-config');
+    if (enabled) {
+        config.style.display = 'block';
+        config.offsetHeight;
+        config.style.opacity = '1';
+    } else {
+        config.style.opacity = '0';
+        setTimeout(() => {
+            config.style.display = 'none';
+        }, 300);
+    }
+}
+
+function toggleGridTariffsTimeVariable() {
+    const enabled = document.getElementById('grid-tariffs-time-variable').checked;
+    const windowsConfig = document.getElementById('grid-tariffs-windows-config');
+    if (enabled) {
+        windowsConfig.style.display = 'block';
+    } else {
+        windowsConfig.style.display = 'none';
+    }
+}
+
+document.getElementById('grid-tariffs-structure')?.addEventListener('change', function() {
+    const structure = this.value;
+    const customConfig = document.getElementById('grid-tariffs-custom-config');
+    if (structure === 'custom') {
+        customConfig.style.display = 'block';
+    } else {
+        customConfig.style.display = 'none';
+    }
+});
+
+function addGridTariffWindow() {
+    const container = document.getElementById('grid-tariffs-windows-container');
+    const windowDiv = document.createElement('div');
+    windowDiv.style.display = 'grid';
+    windowDiv.style.gridTemplateColumns = '1fr 1fr 1fr auto';
+    windowDiv.style.gap = '8px';
+    windowDiv.style.alignItems = 'center';
+    
+    const startInput = document.createElement('input');
+    startInput.type = 'text';
+    startInput.placeholder = '17:00';
+    startInput.style.padding = '8px 12px';
+    startInput.style.background = 'rgba(55, 65, 81, 0.5)';
+    startInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+    startInput.style.borderRadius = '6px';
+    startInput.style.color = '#fff';
+    startInput.style.fontSize = '14px';
+    
+    const endInput = document.createElement('input');
+    endInput.type = 'text';
+    endInput.placeholder = '20:00';
+    endInput.style.padding = '8px 12px';
+    endInput.style.background = 'rgba(55, 65, 81, 0.5)';
+    endInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+    endInput.style.borderRadius = '6px';
+    endInput.style.color = '#fff';
+    endInput.style.fontSize = '14px';
+    
+    const multiplierInput = document.createElement('input');
+    multiplierInput.type = 'number';
+    multiplierInput.min = '0.1';
+    multiplierInput.max = '10';
+    multiplierInput.step = '0.1';
+    multiplierInput.placeholder = '1.5';
+    multiplierInput.value = '1.5';
+    multiplierInput.style.padding = '8px 12px';
+    multiplierInput.style.background = 'rgba(55, 65, 81, 0.5)';
+    multiplierInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+    multiplierInput.style.borderRadius = '6px';
+    multiplierInput.style.color = '#fff';
+    multiplierInput.style.fontSize = '14px';
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '×';
+    deleteBtn.onclick = () => windowDiv.remove();
+    deleteBtn.style.padding = '8px 12px';
+    deleteBtn.style.background = '#ef4444';
+    deleteBtn.style.border = 'none';
+    deleteBtn.style.borderRadius = '6px';
+    deleteBtn.style.color = 'white';
+    deleteBtn.style.cursor = 'pointer';
+    deleteBtn.style.fontSize = '18px';
+    deleteBtn.style.fontWeight = 'bold';
+    
+    windowDiv.appendChild(startInput);
+    windowDiv.appendChild(endInput);
+    windowDiv.appendChild(multiplierInput);
+    windowDiv.appendChild(deleteBtn);
+    container.appendChild(windowDiv);
+}
+
+async function loadGridTariffsConfig() {
+    try {
+        const resp = await fetch('/api/config/grid_tariffs');
+        const data = await resp.json();
+        if (data.success && data.config) {
+            const cfg = data.config;
+            document.getElementById('grid-tariffs-enabled').checked = cfg.enabled || false;
+            document.getElementById('grid-tariffs-structure').value = cfg.tariff_structure || 'NE7';
+            document.getElementById('grid-tariffs-base-tariff').value = cfg.base_tariff_eur_per_kw || 0.15;
+            document.getElementById('grid-tariffs-time-variable').checked = cfg.time_variable || false;
+            
+            // Toggle config visibility
+            toggleGridTariffsConfig();
+            toggleGridTariffsTimeVariable();
+            
+            // Trigger structure change to show/hide custom config
+            const structureSelect = document.getElementById('grid-tariffs-structure');
+            if (structureSelect) {
+                const event = new Event('change');
+                structureSelect.dispatchEvent(event);
+            }
+            
+            // Load windows
+            const container = document.getElementById('grid-tariffs-windows-container');
+            container.innerHTML = '';
+            if (cfg.high_load_windows && Array.isArray(cfg.high_load_windows)) {
+                cfg.high_load_windows.forEach(window => {
+                    const windowDiv = document.createElement('div');
+                    windowDiv.style.display = 'grid';
+                    windowDiv.style.gridTemplateColumns = '1fr 1fr 1fr auto';
+                    windowDiv.style.gap = '8px';
+                    windowDiv.style.alignItems = 'center';
+                    
+                    const startInput = document.createElement('input');
+                    startInput.type = 'text';
+                    startInput.value = window.start || '';
+                    startInput.style.padding = '8px 12px';
+                    startInput.style.background = 'rgba(55, 65, 81, 0.5)';
+                    startInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+                    startInput.style.borderRadius = '6px';
+                    startInput.style.color = '#fff';
+                    startInput.style.fontSize = '14px';
+                    
+                    const endInput = document.createElement('input');
+                    endInput.type = 'text';
+                    endInput.value = window.end || '';
+                    endInput.style.padding = '8px 12px';
+                    endInput.style.background = 'rgba(55, 65, 81, 0.5)';
+                    endInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+                    endInput.style.borderRadius = '6px';
+                    endInput.style.color = '#fff';
+                    endInput.style.fontSize = '14px';
+                    
+                    const multiplierInput = document.createElement('input');
+                    multiplierInput.type = 'number';
+                    multiplierInput.min = '0.1';
+                    multiplierInput.max = '10';
+                    multiplierInput.step = '0.1';
+                    multiplierInput.value = window.multiplier || 1.5;
+                    multiplierInput.style.padding = '8px 12px';
+                    multiplierInput.style.background = 'rgba(55, 65, 81, 0.5)';
+                    multiplierInput.style.border = '1px solid rgba(75, 85, 99, 0.5)';
+                    multiplierInput.style.borderRadius = '6px';
+                    multiplierInput.style.color = '#fff';
+                    multiplierInput.style.fontSize = '14px';
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '×';
+                    deleteBtn.onclick = () => windowDiv.remove();
+                    deleteBtn.style.padding = '8px 12px';
+                    deleteBtn.style.background = '#ef4444';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.borderRadius = '6px';
+                    deleteBtn.style.color = 'white';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.fontSize = '18px';
+                    deleteBtn.style.fontWeight = 'bold';
+                    
+                    windowDiv.appendChild(startInput);
+                    windowDiv.appendChild(endInput);
+                    windowDiv.appendChild(multiplierInput);
+                    windowDiv.appendChild(deleteBtn);
+                    container.appendChild(windowDiv);
+                });
+            }
+        }
+    } catch (err) {
+        console.error('Error loading grid tariffs config:', err);
+    }
+}
+
+async function saveGridTariffsConfig() {
+    const enabled = document.getElementById('grid-tariffs-enabled').checked;
+    const structure = document.getElementById('grid-tariffs-structure').value;
+    const timeVariable = document.getElementById('grid-tariffs-time-variable').checked;
+    const baseTariff = parseFloat(document.getElementById('grid-tariffs-base-tariff').value) || 0.15;
+    
+    // Collect windows
+    const windows = [];
+    const container = document.getElementById('grid-tariffs-windows-container');
+    container.querySelectorAll('div').forEach(windowDiv => {
+        const inputs = windowDiv.querySelectorAll('input');
+        if (inputs.length >= 3) {
+            const start = inputs[0].value.trim();
+            const end = inputs[1].value.trim();
+            const multiplier = parseFloat(inputs[2].value) || 1.0;
+            if (start && end) {
+                windows.push({
+                    start: start,
+                    end: end,
+                    multiplier: multiplier
+                });
+            }
+        }
+    });
+    
+    const config = {
+        enabled: enabled,
+        tariff_structure: structure,
+        time_variable: timeVariable,
+        base_tariff_eur_per_kw: baseTariff,
+        high_load_windows: windows
+    };
+    
+    try {
+        const resp = await fetch('/api/config/grid_tariffs', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        
+        // Check if response is OK
+        if (!resp.ok) {
+            const text = await resp.text();
+            console.error('Server response:', text);
+            alert('❌ Fehler beim Speichern: HTTP ' + resp.status + ' - ' + text);
+            return;
+        }
+        
+        // Try to parse JSON
+        let data;
+        const contentType = resp.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await resp.json();
+        } else {
+            const text = await resp.text();
+            console.error('Non-JSON response:', text);
+            alert('❌ Fehler: Server antwortete nicht mit JSON. Antwort: ' + text.substring(0, 100));
+            return;
+        }
+        
+        if (data.success) {
+            alert('✅ Netzentgelte-Konfiguration gespeichert!');
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    } catch (err) {
+        console.error('Error saving grid tariffs config:', err);
         alert('❌ Fehler beim Speichern: ' + err.message);
     }
 }
