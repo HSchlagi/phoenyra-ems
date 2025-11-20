@@ -9,11 +9,376 @@
 
 | Feature | Priorität | Aufwand | ROI | Empfohlene Phase |
 |---------|-----------|---------|-----|------------------|
+| **0. Multi-Site/Multi-BESS** | 🔴 **SEHR HOCH** | Hoch | ⭐⭐⭐⭐⭐ | Phase 2.5 |
 | **1. KI-basierte Strategie-Auswahl** | 🔴 **Hoch** | Mittel | ⭐⭐⭐⭐⭐ | Phase 3.1 |
 | **2. Erweiterte ML-Prognosen** | 🟡 **Mittel** | Mittel | ⭐⭐⭐⭐ | Phase 3.2 |
 | **3. IoT-Sensor-Integration** | 🟡 **Mittel** | Niedrig | ⭐⭐⭐⭐ | Phase 3.3 |
 | **4. VPP-Integration** | 🟢 **Niedrig** | Hoch | ⭐⭐⭐ | Phase 4 |
 | **5. Blockchain-Integration** | 🟢 **Niedrig** | Sehr Hoch | ⭐⭐ | Phase 5 |
+
+---
+
+## 🏢 **Phase 2.5: Multi-Site/Multi-BESS-Integration** ⭐ **KRITISCH - ZUERST UMSETZEN**
+
+### **Aktueller Stand:**
+- ✅ `site_id` bereits im `PlantState` vorhanden
+- ✅ `user_sites` Tabelle in User-Datenbank für Site-basierte Zugriffskontrolle
+- ✅ Forecast-Funktionen akzeptieren bereits `site_id` als Parameter
+- ❌ **NUR EINE `EmsCore`-Instanz** pro Anwendung
+- ❌ **NUR EINE BESS-Konfiguration** in `ems.yaml`
+- ❌ Keine Multi-Site-Verwaltung im Frontend
+
+### **Was fehlt:**
+- ❌ Multi-Site-Manager für mehrere Standorte
+- ❌ Separate `EmsCore`-Instanzen pro Standort
+- ❌ Site-spezifische Konfigurationen
+- ❌ Multi-Site-Dashboard im Frontend
+- ❌ Aggregierte Ansicht über alle Standorte
+
+### **Konkrete Umsetzung:**
+
+#### **2.5.1 Multi-Site-Manager**
+
+**Architektur:**
+```python
+# app/ems/multi_site_manager.py
+
+from typing import Dict, List, Optional
+from .controller import EmsCore
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class MultiSiteManager:
+    """
+    Verwaltet mehrere Standorte (Sites) mit jeweils eigenem EmsCore
+    
+    Jeder Standort hat:
+    - Eigene BESS-Konfiguration
+    - Eigene Modbus/MQTT-Verbindungen
+    - Eigene Strategien und Optimierung
+    - Eigene Historien-Datenbank
+    """
+    
+    def __init__(self, sites_config: Dict[str, Any]):
+        """
+        Initialisiert Multi-Site-Manager
+        
+        Args:
+            sites_config: Dictionary mit Site-Konfigurationen
+                {
+                    'sites': {
+                        1: { 'name': 'Standort Wien', 'bess': {...}, 'modbus': {...}, ... },
+                        2: { 'name': 'Standort Linz', 'bess': {...}, 'modbus': {...}, ... }
+                    },
+                    'default_site_id': 1
+                }
+        """
+        self.sites: Dict[int, EmsCore] = {}
+        self.site_configs: Dict[int, Dict[str, Any]] = {}
+        self.default_site_id = sites_config.get('default_site_id', 1)
+        
+        # Initialisiere alle Sites
+        for site_id, site_cfg in sites_config.get('sites', {}).items():
+            self._initialize_site(int(site_id), site_cfg)
+        
+        logger.info(f"MultiSiteManager initialized with {len(self.sites)} sites")
+    
+    def _initialize_site(self, site_id: int, site_config: Dict[str, Any]):
+        """
+        Initialisiert einen einzelnen Standort
+        """
+        try:
+            # Erstelle vollständige Config für diesen Standort
+            full_config = {
+                'bess': site_config.get('bess', {}),
+                'modbus': site_config.get('modbus', {}),
+                'mqtt': site_config.get('mqtt', {}),
+                'forecast': site_config.get('forecast', {}),
+                'grid_connection': site_config.get('grid_connection', {}),
+                'feedin_limitation': site_config.get('feedin_limitation', {}),
+                'grid_tariffs': site_config.get('grid_tariffs', {}),
+                'ems': site_config.get('ems', {}),
+                'database': {
+                    'history_path': f"data/ems_history_site_{site_id}.db"
+                }
+            }
+            
+            # Erstelle EmsCore-Instanz für diesen Standort
+            ems_core = EmsCore(full_config)
+            ems_core.state.site_id = site_id
+            ems_core.start()
+            
+            self.sites[site_id] = ems_core
+            self.site_configs[site_id] = site_config
+            
+            logger.info(f"Site {site_id} ({site_config.get('name', 'Unnamed')}) initialized")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize site {site_id}: {e}")
+    
+    def get_site(self, site_id: Optional[int] = None) -> Optional[EmsCore]:
+        """
+        Gibt EmsCore für einen Standort zurück
+        
+        Args:
+            site_id: Site-ID (None = Default-Site)
+        
+        Returns:
+            EmsCore-Instanz oder None
+        """
+        site_id = site_id or self.default_site_id
+        return self.sites.get(site_id)
+    
+    def get_all_sites(self) -> Dict[int, EmsCore]:
+        """Gibt alle Site-Instanzen zurück"""
+        return self.sites
+    
+    def get_site_state(self, site_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """Gibt aktuellen Zustand eines Standorts zurück"""
+        ems = self.get_site(site_id)
+        if ems:
+            return asdict(ems.state)
+        return None
+    
+    def get_all_sites_state(self) -> Dict[int, Dict[str, Any]]:
+        """Gibt Zustand aller Standorte zurück"""
+        return {
+            site_id: asdict(ems.state)
+            for site_id, ems in self.sites.items()
+        }
+    
+    def get_aggregated_state(self) -> Dict[str, Any]:
+        """
+        Aggregiert Zustand aller Standorte
+        
+        Returns:
+            {
+                'total_p_bess': sum aller BESS-Leistungen,
+                'total_p_pv': sum aller PV-Leistungen,
+                'total_p_load': sum aller Lasten,
+                'total_energy_capacity': sum aller Kapazitäten,
+                'avg_soc': durchschnittlicher SoC,
+                'sites': {site_id: state}
+            }
+        """
+        all_states = self.get_all_sites_state()
+        
+        aggregated = {
+            'total_p_bess': 0.0,
+            'total_p_pv': 0.0,
+            'total_p_load': 0.0,
+            'total_p_grid': 0.0,
+            'total_energy_capacity': 0.0,
+            'total_soc_weighted': 0.0,
+            'total_capacity': 0.0,
+            'sites': all_states,
+            'site_count': len(all_states)
+        }
+        
+        for site_id, state in all_states.items():
+            aggregated['total_p_bess'] += state.get('p_bess', 0.0)
+            aggregated['total_p_pv'] += state.get('p_pv', 0.0)
+            aggregated['total_p_load'] += state.get('p_load', 0.0)
+            aggregated['total_p_grid'] += state.get('p_grid', 0.0)
+            
+            capacity = self.site_configs[site_id].get('bess', {}).get('energy_capacity_kwh', 0.0)
+            aggregated['total_energy_capacity'] += capacity
+            aggregated['total_soc_weighted'] += state.get('soc', 0.0) * capacity
+            aggregated['total_capacity'] += capacity
+        
+        # Gewichteter Durchschnitts-SoC
+        if aggregated['total_capacity'] > 0:
+            aggregated['avg_soc'] = aggregated['total_soc_weighted'] / aggregated['total_capacity']
+        else:
+            aggregated['avg_soc'] = 0.0
+        
+        return aggregated
+```
+
+#### **2.5.2 Erweiterte Konfiguration**
+
+**Struktur:**
+```yaml
+# app/config/ems.yaml
+
+# Multi-Site-Konfiguration
+sites:
+  default_site_id: 1
+  sites:
+    1:
+      name: "Standort Wien"
+      location:
+        city: "Wien"
+        latitude: 48.2082
+        longitude: 16.3738
+      bess:
+        energy_capacity_kwh: 200.0
+        power_charge_max_kw: 100.0
+        power_discharge_max_kw: 100.0
+        efficiency_charge: 0.95
+        efficiency_discharge: 0.95
+      modbus:
+        enabled: true
+        connection_type: tcp
+        host: "192.168.1.100"
+        port: 502
+        profile: hithium_ess_5016
+      mqtt:
+        enabled: true
+        broker: "mqtt.wien.local"
+        topics:
+          telemetry: "phoenyra/site1/telemetry"
+          commands: "phoenyra/site1/commands"
+      forecast:
+        pv_peak_power_kw: 50.0
+        latitude: 48.2082
+        longitude: 16.3738
+      grid_connection:
+        max_power_kw: 30.0
+      feedin_limitation:
+        enabled: true
+        mode: fixed
+        fixed_limit_pct: 70.0
+    
+    2:
+      name: "Standort Linz"
+      location:
+        city: "Linz"
+        latitude: 48.3069
+        longitude: 14.2858
+      bess:
+        energy_capacity_kwh: 300.0
+        power_charge_max_kw: 150.0
+        power_discharge_max_kw: 150.0
+        efficiency_charge: 0.95
+        efficiency_discharge: 0.95
+      modbus:
+        enabled: true
+        connection_type: tcp
+        host: "192.168.1.200"
+        port: 502
+        profile: wstech_pcs
+      mqtt:
+        enabled: true
+        broker: "mqtt.linz.local"
+        topics:
+          telemetry: "phoenyra/site2/telemetry"
+          commands: "phoenyra/site2/commands"
+      forecast:
+        pv_peak_power_kw: 75.0
+        latitude: 48.3069
+        longitude: 14.2858
+      grid_connection:
+        max_power_kw: 50.0
+      feedin_limitation:
+        enabled: true
+        mode: dynamic
+        dynamic_rules:
+          - time: "06:00-18:00"
+            limit_pct: 70.0
+          - time: "18:00-22:00"
+            limit_pct: 50.0
+```
+
+#### **2.5.3 Integration in Flask-App**
+
+**Änderungen in `app/web/app.py`:**
+```python
+# app/web/app.py
+
+from ems.multi_site_manager import MultiSiteManager
+
+def create_app():
+    # ... bestehender Code ...
+    
+    cfg = yaml.safe_load(open(Path(__file__).resolve().parents[1]/'config'/'ems.yaml'))
+    
+    # Multi-Site-Manager initialisieren
+    if 'sites' in cfg and 'sites' in cfg['sites']:
+        # Multi-Site-Modus
+        app.ems = MultiSiteManager(cfg['sites'])
+        app.multi_site = True
+    else:
+        # Single-Site-Modus (Rückwärtskompatibilität)
+        app.ems = EmsCore(cfg)
+        app.ems.start()
+        app.multi_site = False
+    
+    # ... restlicher Code ...
+```
+
+#### **2.5.4 API-Erweiterungen**
+
+**Neue Endpunkte in `app/web/routes.py`:**
+```python
+# GET /api/sites - Liste aller Standorte
+@bp.route('/api/sites', methods=['GET'])
+@login_required
+def list_sites():
+    if not current_app.multi_site:
+        return jsonify({'sites': [{'id': 1, 'name': 'Default Site'}]})
+    
+    sites = []
+    for site_id, site_cfg in current_app.ems.site_configs.items():
+        sites.append({
+            'id': site_id,
+            'name': site_cfg.get('name', f'Site {site_id}'),
+            'location': site_cfg.get('location', {}),
+            'state': current_app.ems.get_site_state(site_id)
+        })
+    return jsonify({'sites': sites})
+
+# GET /api/sites/<int:site_id>/state - Zustand eines Standorts
+@bp.route('/api/sites/<int:site_id>/state', methods=['GET'])
+@login_required
+def get_site_state(site_id):
+    # Prüfe Site-Zugriff (user_sites Tabelle)
+    if not has_site_access(current_user, site_id):
+        abort(403)
+    
+    state = current_app.ems.get_site_state(site_id)
+    if state:
+        return jsonify(state)
+    abort(404)
+
+# GET /api/sites/aggregated - Aggregierter Zustand aller Standorte
+@bp.route('/api/sites/aggregated', methods=['GET'])
+@login_required
+@role_required('admin')  # Nur Admins sehen alle Standorte
+def get_aggregated_state():
+    if not current_app.multi_site:
+        return jsonify(asdict(current_app.ems.state))
+    
+    aggregated = current_app.ems.get_aggregated_state()
+    return jsonify(aggregated)
+```
+
+#### **2.5.5 Frontend-Erweiterungen**
+
+**Neue Dashboard-Seite: `/sites`**
+- Übersicht aller Standorte
+- Aggregierte KPIs (Gesamtleistung, Durchschnitts-SoC, etc.)
+- Site-spezifische Detailansicht
+- Site-Auswahl im Monitoring
+
+**Änderungen in `base.html`:**
+- Site-Auswahl-Dropdown in der Navigation (für Multi-Site-User)
+- Aktueller Standort wird in der Session gespeichert
+
+**Aufwand:** ~7-10 Tage  
+**Vorteile:**
+- ✅ Zentrale Verwaltung mehrerer Standorte
+- ✅ Site-spezifische Konfigurationen
+- ✅ Aggregierte Übersicht
+- ✅ Skalierbare Architektur
+- ✅ Nutzt bereits vorhandene `site_id`-Infrastruktur
+
+**Kritisch:** Diese Funktion sollte **VOR** den anderen Features implementiert werden, da:
+- Alle anderen Features (KI-Strategie, ML-Prognosen, etc.) dann pro Standort funktionieren
+- VPP-Integration profitiert von Multi-Site (Aggregation)
+- IoT-Sensor-Integration wird pro Standort benötigt
 
 ---
 
@@ -509,11 +874,19 @@ vpp:
 
 ## 📋 **Empfohlene Implementierungsreihenfolge**
 
-### **Sofort umsetzbar (Phase 3.1):**
+### **KRITISCH - Zuerst umsetzen (Phase 2.5):**
+0. 🔴 **Multi-Site/Multi-BESS-Integration** (7-10 Tage)
+   - **MUSS zuerst kommen**, da alle anderen Features davon profitieren
+   - Ermöglicht Skalierung auf mehrere Standorte
+   - Nutzt bereits vorhandene `site_id`-Infrastruktur
+   - Basis für VPP-Aggregation
+
+### **Sofort danach (Phase 3.1):**
 1. ✅ **KI-basierte Strategie-Auswahl** (3-5 Tage)
    - Größter ROI
    - Nutzt vorhandene Daten
    - Sofort messbare Verbesserung
+   - **Pro Standort implementierbar**
 
 ### **Kurzfristig (Phase 3.2-3.3):**
 2. ✅ **Erweiterte ML-Prognosen** (5-7 Tage)
@@ -535,13 +908,21 @@ vpp:
 
 ---
 
-## 🎯 **Konkreter Startvorschlag: Phase 3.1**
+## 🎯 **Konkreter Startvorschlag: Phase 2.5 (Multi-Site)**
 
-**Warum Phase 3.1 zuerst:**
+**Warum Phase 2.5 ZUERST:**
+- ✅ **Kritische Grundlage** für alle weiteren Features
+- ✅ Nutzt bereits vorhandene `site_id`-Infrastruktur
+- ✅ Ermöglicht Skalierung auf mehrere Standorte
+- ✅ Alle anderen Features (KI, ML, IoT, VPP) profitieren davon
+- ✅ VPP-Integration benötigt Multi-Site für Aggregation
+
+**Danach Phase 3.1 (KI-Strategie):**
 - ✅ Nutzt vorhandene Infrastruktur (Prophet, Historien-DB)
 - ✅ Sofort messbarer Mehrwert (bessere Strategie-Auswahl = mehr Gewinn)
 - ✅ Modulare Erweiterung (keine Breaking Changes)
 - ✅ Geringer Aufwand, hoher ROI
+- ✅ **Pro Standort implementierbar** (dank Phase 2.5)
 
 **Erste Schritte:**
 1. Implementiere `AIStrategySelector` mit Random Forest
