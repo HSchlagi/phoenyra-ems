@@ -21,7 +21,7 @@ docker-compose up -d --build
 
 ### 2. Zugriff auf das Web-Interface
 
-- **Web-Interface:** http://localhost:5050
+- **Web-Interface:** http://localhost:8080
 - **Login:** 
   - Username: `admin`
   - Password: `admin123`
@@ -35,7 +35,7 @@ docker-compose up -d --build
 
 | Container | Port | Beschreibung |
 |-----------|------|--------------|
-| `phoenyra-bess-ems` | 5050 | EMS Web Interface |
+| `phoenyra-bess-ems` | 8080 | EMS Web Interface |
 | `phoenyra-ems-mqtt` | 1883 | MQTT Broker |
 
 ## 🔧 Wartung
@@ -122,11 +122,11 @@ Container können sich über ihren Service-Namen erreichen:
 
 ### Port bereits belegt
 
-Falls Port 5050 oder 1883 bereits belegt ist, ändere die Ports in `docker-compose.yml`:
+Falls Port 8080 oder 1883 bereits belegt ist, ändere die Ports in `docker-compose.yml`:
 
 ```yaml
 ports:
-  - '5051:8000'  # Statt 5050:8000
+  - '8081:8000'  # Statt 8080:8000
 ```
 
 ### Container startet nicht
